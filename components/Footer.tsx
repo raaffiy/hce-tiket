@@ -38,7 +38,7 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-          
+
           {/* Logo & Description */}
           <div className="space-y-4">
             <a
@@ -76,7 +76,7 @@ export default function Footer() {
             <p className="text-xs sm:text-sm text-hce-navy/70 leading-relaxed font-medium">
               Seminar Nasional Kewirausahaan &amp; Kepemimpinan: <em>&ldquo;From Potential to Impact: Building Yourself Before Building a Business&rdquo;</em> bersama Sadam Permana.
             </p>
-            
+
             {/* Social Icons */}
             <div className="flex space-x-2.5 pt-1">
               <a
@@ -169,19 +169,6 @@ export default function Footer() {
                   Kategori Tiket
                 </a>
               </li>
-              <li>
-                <a
-                  href="#faq"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("faq");
-                  }}
-                  className="text-xs sm:text-sm text-hce-navy/70 hover:text-hce-teal transition-colors flex items-center font-medium cursor-pointer"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-hce-teal/40 mr-2" />
-                  Tanya Jawab (FAQ)
-                </a>
-              </li>
             </ul>
           </div>
 
@@ -190,30 +177,32 @@ export default function Footer() {
             <h3 className="text-xs font-bold text-hce-navy uppercase tracking-widest mb-4">Pemesanan Tiket</h3>
             <ul className="space-y-2.5">
               <li>
-                <a
-                  href="#checkout"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("checkout");
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("open-checkout-modal", { detail: { tab: "order" } }));
+                    }
                   }}
                   className="text-xs sm:text-sm text-hce-orange hover:text-hce-orange/80 transition-colors flex items-center font-bold cursor-pointer"
                 >
                   <Ticket className="w-3.5 h-3.5 mr-2 text-hce-orange" />
                   Formulir Beli Tiket
-                </a>
+                </button>
               </li>
               <li>
-                <a
-                  href="#checkout"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("checkout");
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new CustomEvent("open-checkout-modal", { detail: { tab: "lookup" } }));
+                    }
                   }}
                   className="text-xs sm:text-sm text-hce-navy/70 hover:text-hce-teal transition-colors flex items-center font-medium cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5 mr-2 text-hce-teal" />
                   Cari / Cetak E-Ticket
-                </a>
+                </button>
               </li>
               <li>
                 <a
@@ -243,7 +232,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center space-x-2.5 text-xs sm:text-sm text-hce-navy/70 font-medium">
                 <Phone className="w-4 h-4 text-hce-teal shrink-0" />
-                <span>Hotline: +62 857-9739-7454 ({SEMINAR_INFO.contactPerson})</span>
+                <span>+62 857-9739-7454 ({SEMINAR_INFO.contactPerson})</span>
               </li>
             </ul>
           </div>

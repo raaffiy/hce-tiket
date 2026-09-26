@@ -58,7 +58,7 @@ export const SEMINAR_INFO = {
     "Seminar Nasional HCE 2026 menghadirkan ruang refleksi dan strategi praktis bagi generasi muda untuk membangun fondasi mental, resiliensi, dan visi kepemimpinan yang kokoh sebelum melangkah menjadi wirausahawan berdampak nyata.",
   date: "Sabtu, 24 Oktober 2026",
   dateIso: "2026-10-24T09:00:00+07:00",
-  time: "09.00 – 15.30 WIB",
+  time: "12.30 – 16.00 WIB",
   venue: "Auditorium Gd. Damar (Kacang), Telkom University Bandung",
   venueType: "Offline di Kampus Telkom University & Akses Streaming Live",
   address: "Jl. Telekomunikasi No. 1, Terusan Buahbatu, Sukapura, Kec. Dayeuhkolot, Bandung, Jawa Barat 40257",
@@ -73,7 +73,7 @@ export const SPEAKER_INFO = {
   name: "Sadam Permana",
   title: "Entrepreneur, Business Strategist & Keynote Speaker",
   role: "Keynote Speaker Utama",
-  photo: "/sadam-permana.jpg",
+  photo: "/sadam.jpg",
   bio: "Praktisi bisnis dan mentor kepemimpinan pemuda yang telah membantu ribuan anak muda menemukan potensi sejati, merumuskan model bisnis yang berakar pada nilai otentik, serta mengonversi ide menjadi dampak nyata bagi masyarakat.",
   quote:
     "“Banyak bisnis gagal bukan karena kekurangan modal uang, tetapi karena pendirinya belum selesai membangun karakter, disiplin, dan integritas dirinya sendiri.”",
@@ -240,32 +240,7 @@ export const SEMINAR_BENEFITS = [
   },
 ];
 
-export const SEMINAR_FAQS = [
-  {
-    q: "Kapan dan di mana seminar ini diselenggarakan?",
-    a: "Seminar Nasional HCE 2026 diselenggarakan pada Sabtu, 24 Oktober 2026 pukul 09.00 – 15.30 WIB bertempat di Auditorium Gd. Damar (Kacang), Telkom University Bandung.",
-  },
-  {
-    q: "Bagaimana cara melakukan pembelian tiket?",
-    a: "Anda dapat memilih kategori tiket (Early Bird, Regular, atau VIP) pada halaman website, mengisi data pemesan, memilih metode pembayaran (QRIS, Transfer Bank, atau E-Wallet), dan menyelesaikan pembayaran. E-Ticket akan otomatis terbit dan dapat diunduh.",
-  },
-  {
-    q: "Apakah saya akan mendapatkan E-Sertifikat?",
-    a: "Ya! Seluruh pemegang tiket resmi yang hadir akan mendapatkan E-Sertifikat Nasional ber-SKP resmi dari HIPMI PT Telkom University yang dikirimkan via email setelah acara selesai.",
-  },
-  {
-    q: "Apakah tiket yang sudah dibeli dapat direfund atau dipindahtangankan?",
-    a: "Tiket yang sudah dibeli tidak dapat direfund/diuangkan kembali. Namun, tiket dapat dipindahtangankan dengan mengonfirmasikan perubahan nama peserta kepada panitia melalui WhatsApp paling lambat H-2 acara.",
-  },
-  {
-    q: "Apa perbedaan tiket Regular dan VIP Experience?",
-    a: "Tiket VIP memberikan tempat duduk terdepan (front-row), akses privat Meet & Greet eksklusif dan foto bersama Sadam Permana, VIP Lunch Box khusus, serta merchandise box premium.",
-  },
-  {
-    q: "Bagaimana cara melakukan check-in saat hari H acara?",
-    a: "Cukup tunjukkan QR Code pada E-Ticket (bisa melalui smartphone atau cetak) kepada panitia di meja registrasi lobby auditorium untuk dipindai dan ditukarkan dengan wristband seminar kit.",
-  },
-];
+
 
 export const PAYMENT_METHODS = [
   {
