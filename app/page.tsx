@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import {
   Sparkles,
   Clock,
@@ -304,6 +306,8 @@ export default function SinglePageSeminar() {
 
   return (
     <div className="flex flex-col min-h-screen bg-hce-cream text-hce-navy font-sans selection:bg-hce-teal/20 selection:text-hce-teal overflow-x-hidden">
+      <Navbar />
+      <main className="flex-grow">
 
       {/* ========================================================================= */}
       {/* 1. HERO SECTION (#hero) */}
@@ -1489,6 +1493,8 @@ export default function SinglePageSeminar() {
         </div>
       )}
 
+      </main>
+      <Footer />
     </div>
   );
 }
