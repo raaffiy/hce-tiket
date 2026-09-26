@@ -467,7 +467,7 @@ export default function SinglePageSeminar() {
                 Transformasi Potensi Otentik Menjadi Dampak Sosial &amp; Ekonomi
               </h3>
               <p className="text-xs sm:text-sm text-hce-navy/75 leading-relaxed font-medium">
-                Melalui seminar ini, Anda akan mempelajari bagaimana mengenali kekuatan internal, mengatasi <em>imposter syndrome</em>, serta merumuskan strategi eksekusi bisnis yang berakar pada penyelesaian masalah nyata di masyarakat.
+                “Building Yourself Before Building a Business” dilatarbelakangi oleh pentingnya kesiapan diri sebelum membangun sebuah bisnis. Memiliki ide dan potensi saja tidak cukup, karena seorang entrepreneur juga membutuhkan mindset, keterampilan, keberanian, konsistensi, dan kemampuan beradaptasi.
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -478,7 +478,7 @@ export default function SinglePageSeminar() {
                 </div>
                 <div className="p-4 rounded-2xl bg-hce-cream/60 border border-hce-teal/15 space-y-1.5">
                   <Users className="w-5 h-5 text-hce-orange" />
-                  <h4 className="font-bold text-xs text-hce-navy">Eksplorasi Potensi</h4>
+                  <h4 className="font-bold text-xs text-hce-navy">Mentoring Praktis</h4>
                   <p className="text-[11px] text-hce-navy/70 leading-tight">Mentoring praktis bersama praktisi bisnis berpengalaman.</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-hce-cream/60 border border-hce-teal/15 space-y-1.5">

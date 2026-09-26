@@ -231,7 +231,7 @@ export default function Footer() {
         {/* Footer Bottom Bar */}
         <div className="border-t border-hce-teal/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <p className="text-xs text-hce-navy/50 font-semibold">
-            &copy; 2026 HIPMI PT Telkom University - Kabinet Adhimakayasa. All rights reserved.
+            &copy; 2026 Hipmi Collab Expo 2026 - Nabil & Rafi
           </p>
           <p className="text-xs text-hce-navy/40 font-medium">
             Seminar Nasional: From Potential to Impact &bull; Keynote Speaker: Sadam Permana
