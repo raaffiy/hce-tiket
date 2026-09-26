@@ -94,7 +94,7 @@ export default function Navbar() {
                 className="text-[10px] text-hce-teal tracking-widest uppercase mt-0.5 font-semibold"
                 style={{ fontFamily: "var(--font-fredoka)" }}
               >
-                SEMINAR NASIONAL
+                SEMINAR
               </span>
             </div>
           </a>

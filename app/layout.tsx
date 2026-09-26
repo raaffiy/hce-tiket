@@ -33,10 +33,14 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Seminar Nasional HCE 2026 | From Potential to Impact - Sadam Permana",
-  description: "Beli Tiket Seminar Nasional HCE 2026 bersama Sadam Permana: From Potential to Impact - Building Yourself Before Building a Business. Telkom University Bandung.",
+  title: "Seminar HCE 2026",
+  description: "Beli Tiket Seminar HCE 2026 - Telkom University Bandung.",
   icons: {
-    icon: "/HCE LOGO.png",
+    icon: [
+      { url: "/HCE LOGO.png" },
+    ],
+    shortcut: "/HCE LOGO.png",
+    apple: "/HCE LOGO.png",
   },
 };
 

@@ -479,7 +479,7 @@ export default function SinglePageSeminar() {
                 className="text-xs font-black uppercase text-hce-teal tracking-wider"
                 style={{ fontFamily: "var(--font-bebas-neue)" }}
               >
-                Tentang Seminar Nasional
+                Tentang Seminar 
               </span>
             </div>
             <h2
@@ -793,7 +793,7 @@ export default function SinglePageSeminar() {
               Didukung &amp; Bekerja Sama Dengan
             </h3>
             <p className="text-xs sm:text-sm text-hce-navy/75 font-medium max-w-lg mx-auto leading-relaxed">
-              Seminar Nasional HCE 2026 berkolaborasi dengan jaringan media partner dan institusi terkemuka untuk memperluas jangkauan dampak positif.
+              Seminar HCE 2026 berkolaborasi dengan jaringan media partner dan institusi terkemuka untuk memperluas jangkauan dampak positif.
             </p>
           </div>
 
@@ -874,7 +874,7 @@ export default function SinglePageSeminar() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">
-                    SEMINAR NASIONAL HCE 2026
+                    SEMINAR HCE 2026
                   </span>
                   <h3
                     className="text-xl sm:text-2xl font-black text-hce-navy uppercase tracking-wide leading-none"
@@ -950,6 +950,21 @@ export default function SinglePageSeminar() {
                         );
                       })}
                     </div>
+
+                    {/* Benefit Termasuk */}
+                    <div className="pt-3 border-t border-hce-teal/15 space-y-2">
+                      <span className="text-xs font-bold text-hce-navy uppercase tracking-wider block">
+                        Benefit Termasuk ({selectedCategory.name}):
+                      </span>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                        {selectedCategory.perks.map((perk, i) => (
+                          <li key={i} className="flex items-start space-x-2">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span className="text-hce-navy/85 font-medium">{perk}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
                   {/* 2. Customer Identity Data (NIM, Fakultas, Prodi) */}
@@ -975,7 +990,7 @@ export default function SinglePageSeminar() {
                           required
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
-                          placeholder="contoh: Rafi Maulana Pratama"
+                          placeholder="Nama Lengkap.."
                           className="w-full px-3.5 py-2.5 bg-hce-cream/40 border border-hce-teal/25 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                         />
                       </div>
@@ -991,7 +1006,7 @@ export default function SinglePageSeminar() {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="contoh: rafi@example.com"
+                          placeholder="Email Aktif..."
                           className="w-full px-3.5 py-2.5 bg-hce-cream/40 border border-hce-teal/25 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                         />
                       </div>
@@ -1007,7 +1022,7 @@ export default function SinglePageSeminar() {
                           required
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
-                          placeholder="contoh: 081234567890"
+                          placeholder="Contoh: 081234567890"
                           className="w-full px-3.5 py-2.5 bg-hce-cream/40 border border-hce-teal/25 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                         />
                       </div>
@@ -1023,7 +1038,7 @@ export default function SinglePageSeminar() {
                           required
                           value={nim}
                           onChange={(e) => setNim(e.target.value)}
-                          placeholder="contoh: 1201220001"
+                          placeholder="Contoh: 1201220001"
                           className="w-full px-3.5 py-2.5 bg-hce-cream/40 border border-hce-teal/25 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                         />
                       </div>
@@ -1059,7 +1074,7 @@ export default function SinglePageSeminar() {
                           required
                           value={studyProgram}
                           onChange={(e) => setStudyProgram(e.target.value)}
-                          placeholder="contoh: S1 Rekayasa Perangkat Lunak"
+                          placeholder="Contoh: S1 Rekayasa Perangkat Lunak"
                           className="w-full px-3.5 py-2.5 bg-hce-cream/40 border border-hce-teal/25 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                         />
                       </div>
@@ -1220,7 +1235,7 @@ export default function SinglePageSeminar() {
 
                     <div className="p-5 space-y-4">
                       <div className="border-b pb-3">
-                        <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar Nasional</span>
+                        <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
                         <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
                         <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
                       </div>
@@ -1258,7 +1273,16 @@ export default function SinglePageSeminar() {
                           <span className="text-slate-400 block text-[10px]">Total:</span>
                           <strong className="text-hce-teal">{formatRupiah(activeOrder.totalPrice)}</strong>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?mode=gi_t"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Join Group</span>
+                          </a>
                           <button
                             type="button"
                             onClick={() => window.print()}
@@ -1278,23 +1302,6 @@ export default function SinglePageSeminar() {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="text-center pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCheckoutStep(1);
-                        setFullName("");
-                        setEmail("");
-                        setPhone("");
-                        setNim("");
-                        setStudyProgram("");
-                      }}
-                      className="px-5 py-2.5 bg-hce-teal hover:bg-hce-teal/90 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-xs"
-                    >
-                      Pesan Tiket Tambahan Baru
-                    </button>
                   </div>
 
                 </div>
@@ -1320,7 +1327,7 @@ export default function SinglePageSeminar() {
           />
 
           {/* Modal Container */}
-          <div className="bg-hce-cream border-2 border-slate-300 rounded-3xl p-5 sm:p-8 max-w-2xl w-full my-auto shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto">
+          <div className="bg-hce-cream border-2 border-slate-300 rounded-3xl p-5 sm:p-8 max-w-3xl w-full my-auto shadow-2xl relative z-10 max-h-[92vh] overflow-y-auto">
 
             {/* Modal Header & Close Button */}
             <div className="flex items-center justify-between pb-4 border-b border-hce-teal/15 mb-6">
@@ -1385,53 +1392,80 @@ export default function SinglePageSeminar() {
                 )}
               </div>
 
-              {/* TAMPILAN TIKET HASIL CARI */}
+              {/* TAMPILAN TIKET HASIL CARI (IDENTICAL TO ORDER MODAL PASS) */}
               {lookupTicket && (
                 <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden animate-fade-in">
-                  <div className="bg-hce-navy text-white px-5 py-3 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-hce-orange font-bold uppercase tracking-widest">HASIL PENCARIAN TIKET</span>
-                      <h4 className="text-base font-black font-mono">{lookupTicket.ticketCode}</h4>
+                  <div className="bg-hce-navy text-white px-5 py-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-xs">
+                        <Image src="/HCE LOGO.png" alt="HCE" width={24} height={24} className="w-6 h-6 object-contain" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-hce-orange font-bold uppercase tracking-widest">OFFICIAL SEMINAR PASS</span>
+                        <h4 className="text-base font-black leading-tight" style={{ fontFamily: "var(--font-bebas-neue)" }}>
+                          HIPMI Collab Expo 2026
+                        </h4>
+                      </div>
                     </div>
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                       {lookupTicket.ticketStatus}
                     </span>
                   </div>
 
-                  <div className="p-5 space-y-4 text-xs">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <div className="space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span className="text-slate-400 block text-[10px] font-bold uppercase">Data Peserta:</span>
-                        <strong className="text-sm text-hce-navy block">{lookupTicket.customer.fullName}</strong>
-                        <span className="text-slate-600 block">NIM: <strong>{lookupTicket.customer.nim}</strong></span>
-                        <span className="text-slate-600 block">{lookupTicket.customer.faculty}</span>
-                        <span className="text-slate-600 block">{lookupTicket.customer.studyProgram}</span>
+                  <div className="p-5 space-y-4">
+                    <div className="border-b pb-3">
+                      <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
+                      <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <span className="text-slate-400 font-semibold block text-[10px]">Data Peserta:</span>
+                        <strong className="text-hce-navy text-xs block">{lookupTicket.customer.fullName}</strong>
+                        <span className="text-slate-500 block">NIM: <strong>{lookupTicket.customer.nim}</strong></span>
+                        <span className="text-slate-500 block">{lookupTicket.customer.faculty}</span>
+                        <span className="text-slate-500 block">{lookupTicket.customer.studyProgram}</span>
                         <span className="text-slate-500 block text-[11px]">{lookupTicket.customer.email}</span>
                       </div>
-                      <div className="space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        <span className="text-slate-400 block text-[10px] font-bold uppercase">Kategori &amp; Biaya:</span>
-                        <strong className="text-sm text-hce-teal block">{lookupTicket.ticketCategoryName}</strong>
-                        <span className="text-base font-black text-hce-orange block mt-1" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                          {formatRupiah(lookupTicket.totalPrice)}
-                        </span>
-                        <span className="text-[10px] text-slate-400 block">{lookupTicket.paymentMethod}</span>
+
+                      <div className="space-y-1">
+                        <span className="text-slate-400 font-semibold block text-[10px]">Waktu &amp; Lokasi:</span>
+                        <span className="text-hce-navy font-bold block">{SEMINAR_INFO.date}</span>
+                        <span className="text-slate-500 block">{SEMINAR_INFO.time}</span>
+                        <span className="text-slate-500 block">{SEMINAR_INFO.venue}</span>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border-2 border-dashed border-hce-teal/20 text-center flex flex-col items-center justify-center">
+                        <QrCode className="w-16 h-16 text-hce-navy mb-1" />
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">TICKET CODE</span>
+                        <strong className="text-xs font-mono font-black text-hce-teal">{lookupTicket.ticketCode}</strong>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-xl border flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <QrCode className="w-12 h-12 text-hce-navy shrink-0" />
-                        <div>
-                          <span className="text-[9px] text-slate-400 block font-bold">LOKASI &amp; WAKTU:</span>
-                          <span className="font-bold text-hce-navy">{SEMINAR_INFO.venue}</span>
-                          <span className="text-slate-500 block text-[11px]">{SEMINAR_INFO.date} &bull; {SEMINAR_INFO.time}</span>
-                        </div>
+                    <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Paket:</span>
+                        <strong>{lookupTicket.ticketCategoryName}</strong>
                       </div>
-                      <div className="flex gap-2">
+                      <div>
+                        <span className="text-slate-400 block text-[10px]">Total:</span>
+                        <strong className="text-hce-teal">{formatRupiah(lookupTicket.totalPrice)}</strong>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <a
+                          href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?mode=gi_t"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Join Group</span>
+                        </a>
                         <button
                           type="button"
                           onClick={() => window.print()}
-                          className="px-3.5 py-2 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl font-bold text-xs flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                          className="px-3 py-1.5 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>Cetak PDF</span>
@@ -1439,7 +1473,7 @@ export default function SinglePageSeminar() {
                         <button
                           type="button"
                           onClick={() => handleCopyCode(lookupTicket.ticketCode)}
-                          className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-hce-navy rounded-xl text-xs font-bold flex items-center space-x-1 cursor-pointer"
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-hce-navy rounded-xl text-xs font-bold flex items-center space-x-1 cursor-pointer"
                         >
                           {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                           <span>{copiedCode ? "Tersalin" : "Salin"}</span>

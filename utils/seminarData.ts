@@ -63,11 +63,11 @@ export interface SeminarOrder {
 
 export const SEMINAR_INFO = {
   title: "HIPMI Collab Expo 2026",
-  subtitle: "Seminar Nasional Kewirausahaan & Kepemimpinan",
+  subtitle: "Seminar Kewirausahaan & Kepemimpinan",
   theme: "From Potential to Impact: Building Yourself Before Building a Business",
   tagline: "Kembangkan Kapasitas Diri Sebelum Meluncurkan Bisnis yang Berkelanjutan",
   description:
-    "Seminar Nasional HCE 2026 menghadirkan ruang refleksi dan strategi praktis bagi generasi muda untuk membangun fondasi mental, resiliensi, dan visi kepemimpinan yang kokoh sebelum melangkah menjadi wirausahawan berdampak nyata.",
+    "Seminar HCE 2026 menghadirkan ruang refleksi dan strategi praktis bagi generasi muda untuk membangun fondasi mental, resiliensi, dan visi kepemimpinan yang kokoh sebelum melangkah menjadi wirausahawan berdampak nyata.",
   date: "Sabtu, 24 Oktober 2026",
   dateIso: "2026-10-24T09:00:00+07:00",
   time: "12.30 – 16.00 WIB",
@@ -125,8 +125,8 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
     badgeColor: "teal",
     isAvailable: true,
     perks: [
-      "Akses Lengkap Seminar Nasional (Offline)",
-      "E-Sertifikat Nasional Resmi ber-SKP",
+      "Akses Lengkap Seminar (Offline)",
+      "E-Sertifikat Resmi ber-SKP",
       "E-Booklet Materi Eksklusif Pembicara",
       "Snack & Coffee Break",
       "Sesi Tanya Jawab Interaktif",
@@ -221,7 +221,7 @@ export const RUNDOWN_SCHEDULE: RundownItem[] = [
 
 export const SEMINAR_BENEFITS = [
   {
-    title: "E-Sertifikat Nasional",
+    title: "E-Sertifikat",
     desc: "Sertifikat resmi terverifikasi yang ditandatangani oleh Ketua Umum HIPMI PT Telkom.",
     icon: "Award",
   },

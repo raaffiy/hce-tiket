@@ -69,12 +69,12 @@ export default function Footer() {
                   className="text-[10px] text-hce-teal tracking-widest uppercase mt-0.5 font-semibold"
                   style={{ fontFamily: "var(--font-fredoka)" }}
                 >
-                  SEMINAR NASIONAL
+                  SEMINAR
                 </span>
               </div>
             </a>
             <p className="text-xs sm:text-sm text-hce-navy/70 leading-relaxed font-medium">
-              Seminar Nasional Kewirausahaan &amp; Kepemimpinan: <em>&ldquo;From Potential to Impact: Building Yourself Before Building a Business&rdquo;</em> bersama Sadam Permana.
+              Seminar HCE 2026: <em>&ldquo;From Potential to Impact: Building Yourself Before Building a Business&rdquo;</em> bersama Sadam Permana.
             </p>
 
             {/* Social Icons */}
@@ -89,7 +89,7 @@ export default function Footer() {
                 <InstagramIcon className="w-4 h-4" />
               </a>
               <a
-                href={`https://wa.me/${SEMINAR_INFO.contactWhatsApp}?text=Halo%20Admin%20HCE%202026,%20saya%20ingin%20bertanya%20tentang%20tiket%20Seminar%20Nasional...`}
+                href={`https://wa.me/${SEMINAR_INFO.contactWhatsApp}?text=Halo%20Admin%20HCE%202026,%20saya%20ingin%20bertanya%20tentang%20tiket%20Seminar...`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-xl bg-hce-cream border border-hce-teal/15 flex items-center justify-center text-hce-navy/60 hover:text-green-600 hover:bg-green-50 hover:border-green-200 transition-all"
@@ -234,7 +234,7 @@ export default function Footer() {
             &copy; 2026 Hipmi Collab Expo 2026 - Nabil & Rafi
           </p>
           <p className="text-xs text-hce-navy/40 font-medium">
-            Seminar Nasional: From Potential to Impact &bull; Keynote Speaker: Sadam Permana
+            Seminar HCE: From Potential to Impact &bull; Keynote Speaker: Sadam Permana
           </p>
         </div>
       </div>
