@@ -204,17 +204,6 @@ export default function Footer() {
                   Cari / Cetak E-Ticket
                 </button>
               </li>
-              <li>
-                <a
-                  href={`https://wa.me/${SEMINAR_INFO.contactWhatsApp}?text=Halo%20Admin%20HCE%202026,%20saya%20butuh%20bantuan%20pemesanan%20tiket%20kolektif...`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs sm:text-sm text-hce-navy/70 hover:text-green-600 transition-colors flex items-center font-medium"
-                >
-                  <ArrowUpRight className="w-3.5 h-3.5 mr-2 text-hce-navy/40" />
-                  Pemesanan Kolektif / Rombongan
-                </a>
-              </li>
             </ul>
           </div>
 

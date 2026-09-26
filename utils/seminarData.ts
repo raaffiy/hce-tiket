@@ -59,7 +59,7 @@ export const SEMINAR_INFO = {
   date: "Sabtu, 24 Oktober 2026",
   dateIso: "2026-10-24T09:00:00+07:00",
   time: "12.30 – 16.00 WIB",
-  venue: "Auditorium Gd. Damar (Kacang), Telkom University Bandung",
+  venue: "Gedung Serba Guna , Telkom University Bandung",
   venueType: "Offline di Kampus Telkom University & Akses Streaming Live",
   address: "Jl. Telekomunikasi No. 1, Terusan Buahbatu, Sukapura, Kec. Dayeuhkolot, Bandung, Jawa Barat 40257",
   organizer: "HIPMI PT Telkom University (Kabinet Adhimakayasa)",
@@ -163,7 +163,7 @@ export const RUNDOWN_SCHEDULE: RundownItem[] = [
   {
     time: "08.00 – 09.00 WIB",
     title: "Open Gate & Registrasi Ulang",
-    desc: "Penukaran e-ticket dengan wristband seminar kit di meja registrasi lobby auditorium.",
+    desc: "Penukaran e-ticket dengan wristband seminar kit di meja registrasi lobby Gedung Serba Guna.",
     type: "opening",
   },
   {

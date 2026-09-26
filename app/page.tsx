@@ -282,7 +282,7 @@ export default function SinglePageSeminar() {
                   className="text-xs font-black uppercase text-hce-teal tracking-widest"
                   style={{ fontFamily: "var(--font-bebas-neue)" }}
                 >
-                  SEMINAR NASIONAL HCE 2026 &bull; TELKOM UNIVERSITY
+                  SEMINAR HCE 2026 &bull; TELKOM UNIVERSITY
                 </span>
               </div>
 
@@ -342,7 +342,7 @@ export default function SinglePageSeminar() {
                   onClick={() => scrollToId("tentang")}
                   className="w-full sm:w-auto px-6 py-4 bg-white/90 hover:bg-white text-hce-navy border-2 border-hce-teal/20 hover:border-hce-teal/50 rounded-2xl text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center space-x-2 cursor-pointer"
                 >
-                  <span>Pelajari Seminar &darr;</span>
+                  <span>Lihat Pembicara &darr;</span>
                 </button>
               </div>
 
@@ -411,27 +411,6 @@ export default function SinglePageSeminar() {
                   <div className="p-4 bg-hce-cream/60 rounded-2xl border-l-3 border-hce-orange text-xs text-hce-navy/80 italic font-medium leading-relaxed">
                     {SPEAKER_INFO.quote}
                   </div>
-
-                  {/* Quick Perks Bar */}
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block font-semibold">Kapasitas</span>
-                      <strong className="text-hce-navy font-bold">500+ Peserta</strong>
-                    </div>
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block font-semibold">Harga Mulai</span>
-                      <strong className="text-hce-teal font-extrabold">Rp 35.000</strong>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCheckoutModal(undefined, "order")}
-                    className="w-full py-3 bg-hce-teal hover:bg-hce-teal/90 text-white rounded-xl text-center font-bold text-xs shadow-md shadow-hce-teal/20 flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
-                  >
-                    <Ticket className="w-3.5 h-3.5" />
-                    <span>Pesan Tiket Seminar</span>
-                  </button>
 
                 </div>
 
@@ -584,7 +563,7 @@ export default function SinglePageSeminar() {
               <div className="lg:col-span-5 relative">
                 <div className="w-full aspect-square rounded-3xl overflow-hidden border-4 border-[#FFFDE7] shadow-xl relative group">
                   <Image
-                    src={SPEAKER_INFO.photo}
+                    src="/sadam.jpg"
                     alt={SPEAKER_INFO.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -636,17 +615,6 @@ export default function SinglePageSeminar() {
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCheckoutModal(undefined, "order")}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-hce-orange hover:bg-hce-orange/90 text-white rounded-xl text-xs font-bold shadow-md shadow-hce-orange/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <Ticket className="w-4 h-4" />
-                    <span>Daftar Sesi Bersama Sadam Permana</span>
-                  </button>
-                </div>
-
               </div>
 
             </div>
@@ -680,7 +648,7 @@ export default function SinglePageSeminar() {
                 Rundown Seminar Nasional 2026
               </h2>
               <p className="text-xs sm:text-sm text-hce-navy/70 font-medium">
-                Sabtu, 24 Oktober 2026 &bull; Auditorium Gd. Damar Telkom University
+                Sabtu, 24 Oktober 2026 &bull; Gedung Serba Guna Telkom University
               </p>
             </div>
 
@@ -744,21 +712,19 @@ export default function SinglePageSeminar() {
             {TICKET_CATEGORIES.map((cat) => (
               <div
                 key={cat.id}
-                className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${
-                  cat.isPopular
+                className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
                     ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
                     : "bg-white/90 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30"
-                }`}
+                  }`}
               >
                 {cat.tag && (
                   <span
-                    className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${
-                      cat.badgeColor === "orange"
+                    className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${cat.badgeColor === "orange"
                         ? "bg-hce-orange"
                         : cat.badgeColor === "teal"
-                        ? "bg-hce-teal"
-                        : "bg-hce-navy"
-                    }`}
+                          ? "bg-hce-teal"
+                          : "bg-hce-navy"
+                      }`}
                   >
                     {cat.tag}
                   </span>
@@ -807,11 +773,10 @@ export default function SinglePageSeminar() {
                   <button
                     type="button"
                     onClick={() => handleSelectCategoryFromPricing(cat)}
-                    className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${
-                      cat.isPopular
+                    className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${cat.isPopular
                         ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105"
                         : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105"
-                    }`}
+                      }`}
                     style={{ fontFamily: "var(--font-bebas-neue)" }}
                   >
                     <Ticket className="w-4 h-4" />
@@ -831,7 +796,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       {isCheckoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto animate-fade-in">
-          
+
           {/* Backdrop Click Close */}
           <div
             className="fixed inset-0"
@@ -879,9 +844,8 @@ export default function SinglePageSeminar() {
                   setActiveTab("order");
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                  activeTab === "order" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${activeTab === "order" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
+                  }`}
               >
                 Pesan Tiket Baru
               </button>
@@ -891,9 +855,8 @@ export default function SinglePageSeminar() {
                   setActiveTab("lookup");
                   setErrorMessage(null);
                 }}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                  activeTab === "lookup" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
-                }`}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${activeTab === "lookup" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
+                  }`}
               >
                 Cari / Cetak E-Ticket
               </button>
@@ -940,11 +903,10 @@ export default function SinglePageSeminar() {
                             <div
                               key={cat.id}
                               onClick={() => setSelectedCategory(cat)}
-                              className={`p-3.5 rounded-xl cursor-pointer border-2 transition-all flex flex-col justify-between ${
-                                isSelected
+                              className={`p-3.5 rounded-xl cursor-pointer border-2 transition-all flex flex-col justify-between ${isSelected
                                   ? "bg-white border-hce-teal shadow-md"
                                   : "bg-white/60 border-hce-teal/15 hover:bg-white"
-                              }`}
+                                }`}
                             >
                               <div>
                                 <div className="flex justify-between items-center mb-1">
@@ -1073,11 +1035,10 @@ export default function SinglePageSeminar() {
                           <div
                             key={pm.id}
                             onClick={() => setSelectedPayment(pm.id)}
-                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                              selectedPayment === pm.id
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedPayment === pm.id
                                 ? "border-hce-teal bg-[#E8F4F4]"
                                 : "border-slate-200 bg-slate-50/50 hover:bg-white"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-bold text-hce-navy">{pm.name}</span>
