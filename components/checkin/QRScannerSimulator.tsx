@@ -45,8 +45,8 @@ export const QRScannerSimulator: React.FC = () => {
     }, 900);
   };
 
-  // Sample quick scan triggers from actual participants in database
-  const sampleNotCheckedIn = participants.filter((p) => p.checkInStatus === 'Not Checked In').slice(0, 3);
+  // Sample quick scan triggers from actual participants in database (1 peserta belum check-in & 1 duplikat)
+  const sampleNotCheckedIn = participants.filter((p) => p.checkInStatus === 'Not Checked In').slice(0, 1);
   const sampleCheckedIn = participants.filter((p) => p.checkInStatus === 'Checked In').slice(0, 1);
 
   return (
