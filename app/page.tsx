@@ -232,7 +232,7 @@ export default function SinglePageSeminar() {
 
   return (
     <div className="flex flex-col min-h-screen bg-hce-cream text-hce-navy font-sans selection:bg-hce-teal/20 selection:text-hce-teal overflow-x-hidden">
-      
+
       {/* ========================================================================= */}
       {/* 1. HERO SECTION (#hero) */}
       {/* ========================================================================= */}
@@ -243,10 +243,10 @@ export default function SinglePageSeminar() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             {/* Left Column: Headline, Theme, CTAs & Countdown */}
             <div className="lg:col-span-7 text-center lg:text-left space-y-6">
-              
+
               {/* Event Badge */}
               <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/90 border border-hce-teal/20 shadow-xs backdrop-blur-sm">
                 <Sparkles className="w-4 h-4 text-hce-orange" />
@@ -353,17 +353,17 @@ export default function SinglePageSeminar() {
             {/* Right Column: Speaker Spotlight Visual Card */}
             <div className="lg:col-span-5 relative">
               <div className="relative mx-auto max-w-sm sm:max-w-md">
-                
+
                 {/* Background Card Offset Frame */}
                 <div className="absolute inset-0 bg-hce-teal/20 rounded-3xl transform rotate-3 scale-105 -z-10" />
 
                 {/* Main Card */}
                 <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-slate-200 shadow-2xl space-y-5">
-                  
+
                   {/* Speaker Photo */}
                   <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-md group">
                     <Image
-                      src={SPEAKER_INFO.photo}
+                      src="/sadam.jpg"
                       alt={SPEAKER_INFO.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -419,7 +419,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="tentang" className="py-20 bg-white border-y border-hce-teal/10 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
+
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-hce-cream border border-hce-teal/20 shadow-xs">
               <Info className="w-4 h-4 text-hce-orange" />
@@ -442,7 +442,7 @@ export default function SinglePageSeminar() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            
+
             <div className="lg:col-span-7 space-y-5">
               <span className="text-xs font-bold text-hce-teal uppercase tracking-widest">
                 Latar Belakang &amp; Visi
@@ -527,7 +527,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="pembicara" className="py-20 lg:py-28 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-          
+
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white border border-hce-teal/20 shadow-xs">
               <Sparkles className="w-4 h-4 text-hce-orange" />
@@ -552,7 +552,7 @@ export default function SinglePageSeminar() {
           {/* Speaker Profile Card */}
           <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl overflow-hidden p-6 sm:p-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              
+
               <div className="lg:col-span-5 relative">
                 <div className="w-full aspect-square rounded-3xl overflow-hidden border-4 border-[#FFFDE7] shadow-xl relative group">
                   <Image
@@ -640,7 +640,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="informasi" className="py-20 bg-white border-y border-hce-teal/10 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
-          
+
           {/* Rundown Subsection */}
           <div className="max-w-4xl mx-auto space-y-8">
             <div className="text-center space-y-2">
@@ -752,7 +752,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="tiket" className="py-20 lg:py-28 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
-          
+
           <div className="text-center max-w-3xl mx-auto space-y-3">
             <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white border border-hce-teal/20 shadow-xs">
               <Ticket className="w-4 h-4 text-hce-orange" />
@@ -779,21 +779,19 @@ export default function SinglePageSeminar() {
             {TICKET_CATEGORIES.map((cat) => (
               <div
                 key={cat.id}
-                className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${
-                  cat.isPopular
+                className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
                     ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
                     : "bg-white/90 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30"
-                }`}
+                  }`}
               >
                 {cat.tag && (
                   <span
-                    className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${
-                      cat.badgeColor === "orange"
+                    className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${cat.badgeColor === "orange"
                         ? "bg-hce-orange"
                         : cat.badgeColor === "teal"
-                        ? "bg-hce-teal"
-                        : "bg-hce-navy"
-                    }`}
+                          ? "bg-hce-teal"
+                          : "bg-hce-navy"
+                      }`}
                   >
                     {cat.tag}
                   </span>
@@ -843,11 +841,10 @@ export default function SinglePageSeminar() {
                   <button
                     type="button"
                     onClick={() => handleSelectCategoryFromPricing(cat)}
-                    className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${
-                      cat.isPopular
+                    className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${cat.isPopular
                         ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105"
                         : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105"
-                    }`}
+                      }`}
                     style={{ fontFamily: "var(--font-bebas-neue)" }}
                   >
                     <Ticket className="w-4 h-4" />
@@ -867,7 +864,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="faq" className="py-20 bg-white border-y border-hce-teal/10 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          
+
           <div className="text-center space-y-3">
             <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-hce-cream border border-hce-teal/20 shadow-xs">
               <HelpCircle className="w-4 h-4 text-hce-orange" />
@@ -915,9 +912,8 @@ export default function SinglePageSeminar() {
                   >
                     <span>{faq.q}</span>
                     <ChevronDown
-                      className={`w-4 h-4 text-hce-teal shrink-0 transition-transform duration-300 ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
+                      className={`w-4 h-4 text-hce-teal shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
                   {isOpen && (
@@ -938,7 +934,7 @@ export default function SinglePageSeminar() {
       {/* ========================================================================= */}
       <section id="checkout" className="py-20 lg:py-28 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          
+
           <div className="text-center space-y-3">
             <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white border border-hce-teal/20 shadow-xs">
               <Ticket className="w-4 h-4 text-hce-orange" />
@@ -964,18 +960,16 @@ export default function SinglePageSeminar() {
               <button
                 type="button"
                 onClick={() => setActiveTab("order")}
-                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "order" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
-                }`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "order" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
+                  }`}
               >
                 Pesan Tiket Baru
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("lookup")}
-                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === "lookup" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
-                }`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === "lookup" ? "bg-hce-teal text-white shadow-sm" : "text-hce-navy/70 hover:text-hce-teal"
+                  }`}
               >
                 Cari / Cetak E-Ticket
               </button>
@@ -985,7 +979,7 @@ export default function SinglePageSeminar() {
           {/* TAB 1: FORMULIR PEMESANAN TIKET */}
           {activeTab === "order" && (
             <div className="space-y-6">
-              
+
               {/* Step indicator */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-hce-teal/15 shadow-sm max-w-xl mx-auto">
                 <div className="flex items-center justify-between relative">
@@ -1009,7 +1003,7 @@ export default function SinglePageSeminar() {
               {/* STEP 1: PILIH TIKET & ISI DATA PESERTA */}
               {checkoutStep === 1 && (
                 <form onSubmit={handleProceedToPayment} className="space-y-6">
-                  
+
                   {/* Category Selection in Form */}
                   <div className="bg-[#FFFDE7] p-6 sm:p-8 rounded-3xl border-2 border-slate-300 shadow-md space-y-4">
                     <h3 className="text-xl font-black text-hce-navy uppercase tracking-wider" style={{ fontFamily: "var(--font-bebas-neue)" }}>
@@ -1023,11 +1017,10 @@ export default function SinglePageSeminar() {
                           <div
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat)}
-                            className={`p-4 rounded-2xl cursor-pointer border-2 transition-all flex flex-col justify-between ${
-                              isSelected
+                            className={`p-4 rounded-2xl cursor-pointer border-2 transition-all flex flex-col justify-between ${isSelected
                                 ? "bg-white border-hce-teal shadow-md"
                                 : "bg-white/60 border-hce-teal/15 hover:bg-white"
-                            }`}
+                              }`}
                           >
                             <div>
                               <div className="flex justify-between items-center mb-1">
@@ -1156,11 +1149,10 @@ export default function SinglePageSeminar() {
                         <div
                           key={pm.id}
                           onClick={() => setSelectedPayment(pm.id)}
-                          className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                            selectedPayment === pm.id
+                          className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedPayment === pm.id
                               ? "border-hce-teal bg-[#E8F4F4]"
                               : "border-slate-200 bg-slate-50/50 hover:bg-white"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-bold text-hce-navy">{pm.name}</span>
@@ -1272,7 +1264,7 @@ export default function SinglePageSeminar() {
               {/* STEP 3: E-TICKET TERBIT LANGSUNG DI SINGLE PAGE */}
               {checkoutStep === 3 && activeOrder && (
                 <div className="space-y-6 animate-fade-in">
-                  
+
                   {/* Success Alert Banner */}
                   <div className="bg-emerald-50 border-2 border-emerald-200 p-5 rounded-2xl text-center space-y-1">
                     <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
