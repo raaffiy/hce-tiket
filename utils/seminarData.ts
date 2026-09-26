@@ -28,6 +28,17 @@ export interface RundownItem {
   type: "opening" | "keynote" | "qa" | "break" | "closing";
 }
 
+export const FACULTIES = [
+  "Fakultas Ilmu Terapan",
+  "Fakultas Ekonomi Bisnis",
+  "Fakultas Komunikasi Sosial",
+  "Fakultas Industri Kreatif",
+  "Fakultas Teknik Elektro",
+  "Fakultas Rekayasa Industri",
+  "Fakultas Kedokteran",
+  "Fakultas Informatika",
+] as const;
+
 export interface SeminarOrder {
   orderId: string;
   ticketCode: string;
@@ -44,8 +55,9 @@ export interface SeminarOrder {
     fullName: string;
     email: string;
     phone: string;
-    institution: string;
-    notes?: string;
+    nim: string;
+    faculty: string;
+    studyProgram: string;
   };
 }
 
@@ -286,8 +298,9 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
       fullName: "Rafi Maulana Pratama",
       email: "raffi@example.com",
       phone: "081234567890",
-      institution: "Telkom University",
-      notes: "Ingin berkonsultasi tentang startup AI",
+      nim: "6701223045",
+      faculty: "Fakultas Ilmu Terapan",
+      studyProgram: "D3 Sistem Informasi",
     },
   },
   {
@@ -306,7 +319,9 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
       fullName: "Alya Nabilah Putri",
       email: "alya@example.com",
       phone: "082159597960",
-      institution: "Institut Teknologi Bandung",
+      nim: "1301220199",
+      faculty: "Fakultas Informatika",
+      studyProgram: "S1 Informatika",
     },
   },
 ];
