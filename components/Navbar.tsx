@@ -18,7 +18,7 @@ export default function Navbar() {
         setIsScrolled(false);
       }
 
-      const sections = ["hero", "tentang", "pembicara", "informasi", "tiket"];
+      const sections = ["hero", "tentang", "pembicara", "tiket"];
       const scrollPos = window.scrollY + 120;
 
       for (const section of sections) {
@@ -41,8 +41,7 @@ export default function Navbar() {
   const navLinks = [
     { name: "Tentang Seminar", href: "#tentang", id: "tentang" },
     { name: "Pembicara", href: "#pembicara", id: "pembicara" },
-    { name: "Informasi", href: "#informasi", id: "informasi" },
-    { name: "Tiket", href: "#tiket", id: "tiket" },
+    { name: "Tiket & Sponsor", href: "#tiket", id: "tiket" },
   ];
 
   const scrollToSection = (href: string) => {

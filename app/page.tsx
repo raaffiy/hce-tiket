@@ -39,7 +39,6 @@ import {
   SEMINAR_INFO,
   SPEAKER_INFO,
   TICKET_CATEGORIES,
-  RUNDOWN_SCHEDULE,
   PAYMENT_METHODS,
   TicketCategory,
   SeminarOrder,
@@ -48,6 +47,16 @@ import {
   findOrderByCode,
   formatRupiah,
 } from "@/utils/seminarData";
+
+const mediaPartners = [
+  { name: "Info Olimpiade", logo: "/media_partners/LOGO INFO OLIMPIADE.png" },
+  { name: "Pojok Event", logo: "/media_partners/Logo Pojok Event-20.jpg" },
+  { name: "Event Update", logo: "/media_partners/Logo event update.png" },
+  { name: "Seminar Utama", logo: "/media_partners/Seminar utama.png" },
+  { name: "Info Lomba", logo: "/media_partners/imfolomba.jpg" },
+  { name: "Telyu Info", logo: "/media_partners/telyuinfo.jpg" },
+  { name: "Telyutizen", logo: "/media_partners/telyutizen.jpg" },
+];
 
 export default function SinglePageSeminar() {
   // Live Countdown Timer State (Target: Oct 24, 2026 09:00:00 WIB)
@@ -624,70 +633,13 @@ export default function SinglePageSeminar() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. INFORMASI SEMINAR SECTION (#informasi) */}
+      {/* 4. TIKET & SPONSOR / MEDPART SECTION (#tiket) */}
       {/* ========================================================================= */}
-      <section id="informasi" className="py-20 bg-white border-y border-hce-teal/10 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
-
-          {/* Rundown Subsection */}
-          <div className="max-w-4xl mx-auto space-y-8">
-            <div className="text-center space-y-2">
-              <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-hce-cream border border-hce-teal/20 shadow-xs">
-                <Clock className="w-4 h-4 text-hce-orange" />
-                <span
-                  className="text-xs font-black uppercase text-hce-teal tracking-wider"
-                  style={{ fontFamily: "var(--font-bebas-neue)" }}
-                >
-                  Susunan Acara Lengkap
-                </span>
-              </div>
-              <h2
-                className="text-3xl sm:text-5xl font-black text-hce-navy uppercase tracking-wide"
-                style={{ fontFamily: "var(--font-bebas-neue)" }}
-              >
-                Rundown Seminar Nasional 2026
-              </h2>
-              <p className="text-xs sm:text-sm text-hce-navy/70 font-medium">
-                Sabtu, 24 Oktober 2026 &bull; Gedung Serba Guna Telkom University
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {RUNDOWN_SCHEDULE.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-hce-cream/40 rounded-2xl p-5 border-2 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-hce-teal/40 transition-colors shadow-xs"
-                >
-                  <div className="flex items-start sm:items-center space-x-4">
-                    <div className="px-3.5 py-2 rounded-xl bg-white border border-hce-teal/20 text-xs font-bold text-hce-teal shrink-0 shadow-xs">
-                      {item.time}
-                    </div>
-                    <div>
-                      <h3 className="font-extrabold text-sm sm:text-base text-hce-navy">{item.title}</h3>
-                      <p className="text-xs text-hce-navy/70 mt-0.5 font-medium">{item.desc}</p>
-                    </div>
-                  </div>
-                  {item.speaker && (
-                    <span className="px-3 py-1 rounded-full bg-hce-orange/15 text-hce-orange text-xs font-bold shrink-0 self-start sm:self-center">
-                      {item.speaker}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 5. TIKET SECTION (#tiket) */}
-      {/* ========================================================================= */}
-      <section id="tiket" className="py-20 lg:py-28 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+      <section id="tiket" className="py-20 lg:py-28 bg-white border-y border-hce-teal/10 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
 
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white border border-hce-teal/20 shadow-xs">
+            <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-hce-cream border border-hce-teal/20 shadow-xs">
               <Ticket className="w-4 h-4 text-hce-orange" />
               <span
                 className="text-xs font-black uppercase text-hce-teal tracking-wider"
@@ -714,7 +666,7 @@ export default function SinglePageSeminar() {
                 key={cat.id}
                 className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
                     ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
-                    : "bg-white/90 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30"
+                    : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
                   }`}
               >
                 {cat.tag && (
@@ -784,6 +736,64 @@ export default function SinglePageSeminar() {
                   </button>
                 </div>
 
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 5. SPONSORS & MEDIA PARTNERS SECTION (#sponsor) */}
+      {/* ========================================================================= */}
+      <section id="sponsor" className="py-20 lg:py-24 relative overflow-hidden">
+        {/* Subtle Background Glow Dots */}
+        <div className="absolute top-1/2 left-10 w-[350px] h-[350px] glow-dot-teal -z-10 opacity-15 pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-[300px] h-[300px] glow-dot-orange -z-10 opacity-15 pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14">
+
+          {/* Section Header */}
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-[#EAF3F3] border border-hce-teal/20 shadow-xs">
+              <Sparkles className="w-4 h-4 text-hce-orange" />
+              <span
+                className="text-xs font-black uppercase text-hce-teal tracking-widest"
+                style={{ fontFamily: "var(--font-bebas-neue)" }}
+              >
+                Partnership &amp; Media Network
+              </span>
+            </div>
+            <h3
+              className="text-3xl sm:text-5xl font-black text-hce-navy uppercase tracking-wide leading-tight"
+              style={{ fontFamily: "var(--font-bebas-neue)" }}
+            >
+              Didukung &amp; Bekerja Sama Dengan
+            </h3>
+            <p className="text-xs sm:text-sm text-hce-navy/75 font-medium max-w-lg mx-auto leading-relaxed">
+              Seminar Nasional HCE 2026 berkolaborasi dengan jaringan media partner dan institusi terkemuka untuk memperluas jangkauan dampak positif.
+            </p>
+          </div>
+
+          {/* Media Partners Logo Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5 max-w-5xl mx-auto">
+            {mediaPartners.map((mp, index) => (
+              <div
+                key={index}
+                className="bg-[#F8F1E5]/80 backdrop-blur-xs border border-hce-teal/15 hover:border-hce-teal/40 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center gap-2.5 shadow-xs hover:shadow-md transition-all duration-300 hover:-translate-y-1 group hover:bg-white"
+              >
+                <div className="h-14 sm:h-16 w-full flex items-center justify-center">
+                  <Image
+                    src={mp.logo}
+                    alt={mp.name}
+                    width={120}
+                    height={50}
+                    className="max-h-12 w-auto object-contain transition-all duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <span className="text-xs font-bold text-hce-navy/80 text-center group-hover:text-hce-teal transition-colors">
+                  {mp.name}
+                </span>
               </div>
             ))}
           </div>
