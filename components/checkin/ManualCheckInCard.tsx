@@ -28,9 +28,9 @@ export const ManualCheckInCard: React.FC = () => {
     setFoundParticipant(match || null);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!foundParticipant) return;
-    const res = performCheckIn(foundParticipant.orderId, 'Manual');
+    const res = await performCheckIn(foundParticipant.orderId, 'Manual');
     if (res.participant) {
       setFoundParticipant(res.participant);
     }

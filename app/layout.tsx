@@ -42,6 +42,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { HCEAppProvider } from "@/context/HCEAppContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,7 +55,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fredoka.variable} ${bebasNeue.variable} ${plusJakarta.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-blue-600/10 selection:text-blue-600">
-        {children}
+        <HCEAppProvider>
+          {children}
+        </HCEAppProvider>
       </body>
     </html>
   );

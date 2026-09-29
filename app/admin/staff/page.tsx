@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { useHCEApp } from '@/context/HCEAppContext';
-import { Staff, StaffRole } from '@/types/hce';
-import { STAFF_ROLE_CONFIGS } from '@/mock/mockStaff';
+import { Staff, StaffRole, STAFF_ROLE_CONFIGS } from '@/types/hce';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
@@ -14,6 +13,8 @@ import {
   Shield,
   ShieldCheck,
   QrCode,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 export default function StaffManagementPage() {
@@ -30,40 +31,60 @@ export default function StaffManagementPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<StaffRole>('STAFF');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const handleAddStaffSubmit = (e: React.FormEvent) => {
+  const handleAddStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
 
     if (!name.trim()) {
       addToast('Nama staff wajib diisi.', 'error');
+      setFormError('Nama staff wajib diisi.');
       return;
     }
     if (!email.trim() || !email.includes('@')) {
       addToast('Email staff tidak valid.', 'error');
+      setFormError('Email staff tidak valid.');
       return;
     }
     if (password.length < 8) {
       addToast('Password minimal 8 karakter.', 'error');
+      setFormError('Password minimal 8 karakter.');
       return;
     }
     if (password !== confirmPassword) {
       addToast('Konfirmasi password tidak cocok.', 'error');
+      setFormError('Konfirmasi password tidak cocok.');
       return;
     }
 
-    addStaff({
-      name,
-      email,
-      role,
-      status: 'Active',
-    });
+    setIsSubmitting(true);
+    try {
+      const res = await addStaff({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role,
+        status: 'Active',
+        password,
+      });
 
-    setIsAddStaffOpen(false);
-    setName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setRole('STAFF');
+      if (res.success) {
+        setIsAddStaffOpen(false);
+        setName('');
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setRole('STAFF');
+        setFormError(null);
+      } else {
+        setFormError(res.error || 'Gagal mendaftarkan akun di Supabase Auth.');
+      }
+    } catch (err: any) {
+      setFormError(err?.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getRoleBadge = (roleKey: StaffRole) => {
@@ -306,19 +327,31 @@ export default function StaffManagementPage() {
             </div>
           </div>
 
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong>Gagal: </strong>{formError}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <button
               type="button"
+              disabled={isSubmitting}
               onClick={() => setIsAddStaffOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-70"
             >
-              Buat Akun Staff
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isSubmitting ? 'Mendaftarkan...' : 'Buat Akun Staff'}
             </button>
           </div>
         </form>

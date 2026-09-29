@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useHCEApp } from '@/context/HCEAppContext';
 import {
   LayoutDashboard,
@@ -32,7 +32,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   setMobileOpen,
 }) => {
   const pathname = usePathname();
-  const { currentUser } = useHCEApp();
+  const router = useRouter();
+  const { currentUser, logoutUser } = useHCEApp();
 
   const isStaffOnly = currentUser?.role === 'STAFF';
 
@@ -58,7 +59,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {
           title: 'CONTENT / LANDING PAGE',
           items: [
-            { label: 'Media & Sponsor', href: '/admin/partners', icon: Handshake },
+            { label: 'Partnership & Media', href: '/admin/partners', icon: Handshake },
           ],
         },
         {
@@ -161,8 +162,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <div className="p-3 border-t border-slate-800/80 space-y-2">
 
           <button
-            onClick={() => alert('Fitur simulasi logout - Super Admin session.')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs lg:text-sm font-medium text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 transition-colors ${
+            onClick={async () => {
+              await logoutUser();
+              router.push('/');
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs lg:text-sm font-medium text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 transition-colors cursor-pointer ${
               isCollapsed ? 'justify-center px-0' : ''
             }`}
             title={isCollapsed ? 'Logout' : undefined}

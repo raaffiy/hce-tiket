@@ -769,18 +769,28 @@ export default function TransactionsPage() {
                     <span className="text-[10px] font-bold text-slate-400">Uploaded</span>
                   </div>
 
-                  <div className="mt-2.5 relative group rounded-xl overflow-hidden border border-slate-300 bg-white p-2 text-center">
-                    <div className="relative w-full h-36 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
-                      <Image
+                  <div className="mt-2.5 relative group rounded-xl overflow-hidden border border-slate-300 bg-white p-2 text-center space-y-1.5">
+                    <div className="relative w-full h-40 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+                      <img
                         src={selectedTx.paymentProof || '/scanqr.jpeg'}
                         alt="Bukti Transfer"
-                        fill
-                        className="object-contain"
+                        className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform"
+                        onClick={() => window.open(selectedTx.paymentProof || '/scanqr.jpeg', '_blank')}
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
-                      {selectedTx.paymentProof ? 'Bukti transfer valid dari user' : 'File bukti transfer (Mock dummy)'}
-                    </p>
+                    <div className="flex items-center justify-between px-1">
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        {selectedTx.paymentProof ? 'Bukti transfer Supabase' : 'File bukti transfer'}
+                      </p>
+                      <a
+                        href={selectedTx.paymentProof || '/scanqr.jpeg'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-bold text-[#1A5E61] hover:underline"
+                      >
+                        Buka Foto ↗
+                      </a>
+                    </div>
                   </div>
                 </div>
 

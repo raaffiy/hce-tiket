@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, LogIn, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from "lucide-react";
+import { useHCEApp } from "@/context/HCEAppContext";
+import { Menu, X, LogIn, Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight, LayoutDashboard } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
+  const { currentUser, loginUser } = useHCEApp();
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
@@ -63,27 +66,38 @@ export default function Navbar() {
     }
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage("Silakan isi email dan password.");
+      setErrorMessage("Silakan masukkan email dan password.");
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await loginUser(email, password);
+      if (!res.success) {
+        setErrorMessage(res.error || "Email atau password salah.");
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoginModalOpen(false);
-      router.push("/admin/dashboard");
-    }, 600);
+      if (res.user?.role === "STAFF") {
+        router.push("/admin/check-in");
+      } else {
+        router.push("/admin/dashboard");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Gagal masuk ke sistem.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDemoFill = () => {
-    setEmail("superadmin@hce-event.id");
-    setPassword("admin12345");
-  };
+  const dashboardHref = currentUser?.role === "STAFF" ? "/admin/check-in" : "/admin/dashboard";
 
   return (
     <>
@@ -132,7 +146,7 @@ export default function Navbar() {
               </div>
             </a>
 
-            {/* Desktop Navigation Links & Login Button */}
+            {/* Desktop Navigation Links & Login/Dashboard Button */}
             <div className="hidden lg:flex items-center gap-3">
               <div className="flex space-x-1 bg-white/70 backdrop-blur-sm rounded-2xl p-1.5 border border-hce-teal/10 shadow-xs">
                 {navLinks.map((link) => {
@@ -160,27 +174,53 @@ export default function Navbar() {
                 })}
               </div>
 
-              {/* Login Button */}
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#102A43] hover:bg-[#1a3d60] text-white text-xs xl:text-sm font-bold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
-              >
-                <LogIn className="w-4 h-4 text-[#E05A1F]" />
-                <span>Login</span>
-              </button>
+              {/* Login / Dashboard Button */}
+              {currentUser ? (
+                <Link
+                  href={dashboardHref}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#1A5E61] hover:bg-[#134648] text-white text-xs xl:text-sm font-bold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                >
+                  <LayoutDashboard className="w-4 h-4 text-[#FFF6E9]" />
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    setErrorMessage("");
+                    setIsLoginModalOpen(true);
+                  }}
+                  type="button"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#102A43] hover:bg-[#1a3d60] text-white text-xs xl:text-sm font-bold tracking-wide shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4 text-[#E05A1F]" />
+                  <span>Login</span>
+                </button>
+              )}
             </div>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile Hamburger & Login/Dashboard Button */}
             <div className="flex items-center gap-2 lg:hidden">
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                type="button"
-                className="px-3.5 py-2 rounded-xl bg-[#102A43] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
-              >
-                <LogIn className="w-3.5 h-3.5 text-[#E05A1F]" />
-                <span>Login</span>
-              </button>
+              {currentUser ? (
+                <Link
+                  href={dashboardHref}
+                  className="px-3.5 py-2 rounded-xl bg-[#1A5E61] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5 text-[#FFF6E9]" />
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    setErrorMessage("");
+                    setIsLoginModalOpen(true);
+                  }}
+                  type="button"
+                  className="px-3.5 py-2 rounded-xl bg-[#102A43] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-[#E05A1F]" />
+                  <span>Login</span>
+                </button>
+              )}
               
               <button
                 onClick={() => setIsOpen(!isOpen)}
@@ -223,7 +263,7 @@ export default function Navbar() {
         )}
       </nav>
 
-      {/* LOGIN MODAL WITH EMAIL & PASSWORD */}
+      {/* LOGIN MODAL WITH SUPABASE AUTH */}
       {isLoginModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
@@ -238,7 +278,7 @@ export default function Navbar() {
             <div className="bg-gradient-to-r from-[#102A43] via-[#1A5E61] to-[#102A43] p-6 text-white text-center relative">
               <button
                 onClick={() => setIsLoginModalOpen(false)}
-                className="absolute right-4 top-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                className="absolute right-4 top-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -272,7 +312,7 @@ export default function Navbar() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nama@hce-event.id"
+                    placeholder="Masukkan Email"
                     className="w-full pl-10 pr-4 py-2.5 text-xs lg:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A5E61]/20 focus:border-[#1A5E61] text-[#102A43] transition-all"
                   />
                 </div>
@@ -280,18 +320,9 @@ export default function Navbar() {
 
               {/* Password Input */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Password <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleDemoFill}
-                    className="text-[11px] font-semibold text-[#1A5E61] hover:underline"
-                  >
-                    Auto-Fill Demo
-                  </button>
-                </div>
+                <label className="block text-xs font-bold text-slate-700">
+                  Password <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -305,7 +336,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -316,10 +347,10 @@ export default function Navbar() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[#102A43] hover:bg-[#1a3d60] text-white rounded-xl text-xs lg:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 mt-2"
+                className="w-full py-3 bg-[#102A43] hover:bg-[#1a3d60] text-white rounded-xl text-xs lg:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 mt-4"
               >
                 {isLoading ? (
-                  <span>Memverifikasi...</span>
+                  <span>Memverifikasi akun...</span>
                 ) : (
                   <>
                     <span>Masuk ke Dashboard</span>
@@ -327,13 +358,6 @@ export default function Navbar() {
                   </>
                 )}
               </button>
-
-              {/* Demo Hint */}
-              <div className="pt-2 text-center">
-                <p className="text-[11px] text-slate-400">
-                  Demo Super Admin: <span className="font-mono text-slate-600 font-semibold">superadmin@hce-event.id</span>
-                </p>
-              </div>
             </form>
           </div>
         </div>

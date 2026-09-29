@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '@/lib/supabase';
 import { 
   Ticket, 
   Participant, 
@@ -8,16 +9,36 @@ import {
   Staff, 
   MediaPartner, 
   Sponsor, 
-  RecentActivity,
-  CheckInMethod,
-  PaymentStatus
+  RecentActivity, 
+  CheckInMethod, 
+  PaymentStatus 
 } from '@/types/hce';
-import { INITIAL_TICKETS } from '@/mock/mockTickets';
-import { INITIAL_PARTICIPANTS } from '@/mock/mockParticipants';
-import { INITIAL_TRANSACTIONS } from '@/mock/mockTransactions';
-import { INITIAL_STAFF } from '@/mock/mockStaff';
-import { INITIAL_MEDIA_PARTNERS, INITIAL_SPONSORS } from '@/mock/mockPartners';
-import { INITIAL_ACTIVITIES } from '@/mock/mockActivities';
+import {
+  fetchTicketsFromSupabase,
+  createTicketInSupabase,
+  updateTicketInSupabase,
+  deleteTicketInSupabase,
+  fetchParticipantsFromSupabase,
+  deleteParticipantInSupabase,
+  fetchTransactionsFromSupabase,
+  updateTransactionStatusInSupabase,
+  updateParticipantAndTransactionInSupabase,
+  performCheckInInSupabase,
+  fetchStaffFromSupabase,
+  createStaffInSupabase,
+  deleteStaffInSupabase,
+  updateStaffStatusInSupabase,
+  signInStaffInSupabase,
+  signOutStaffInSupabase,
+  fetchMediaPartnersFromSupabase,
+  createMediaPartnerInSupabase,
+  deleteMediaPartnerInSupabase,
+  fetchSponsorsFromSupabase,
+  createSponsorInSupabase,
+  deleteSponsorInSupabase,
+  fetchActivitiesFromSupabase,
+  recordActivityInSupabase,
+} from '@/lib/supabaseServices';
 
 export interface ToastMessage {
   id: string;
@@ -26,16 +47,21 @@ export interface ToastMessage {
   timestamp: number;
 }
 
-interface HCEAppContextType {
-  // Current User Context (Frontend Permission Sim)
-  currentUser: {
-    name: string;
-    email: string;
-    role: string;
-    avatar: string;
-  };
+export interface CurrentUser {
+  id?: string;
+  name: string;
+  email: string;
+  role: 'SUPER_ADMIN' | 'STAFF' | string;
+  avatar?: string;
+}
 
-  // State Datasets
+interface HCEAppContextType {
+  // Current Authenticated User
+  currentUser: CurrentUser | null;
+  loginUser: (email: string, password: string) => Promise<{ success: boolean; user?: any; error?: string }>;
+  logoutUser: () => Promise<void>;
+
+  // State Datasets (Direct from Supabase)
   tickets: Ticket[];
   participants: Participant[];
   transactions: Transaction[];
@@ -44,6 +70,7 @@ interface HCEAppContextType {
   sponsors: Sponsor[];
   activities: RecentActivity[];
   toasts: ToastMessage[];
+  isLoading: boolean;
 
   // Derived Stats
   stats: {
@@ -61,19 +88,22 @@ interface HCEAppContextType {
     refundedOrdersCount: number;
   };
 
+  // Actions - Data Sync
+  refreshData: () => Promise<void>;
+
   // Actions - Toast
   addToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   removeToast: (id: string) => void;
 
   // Actions - Tickets
-  createTicket: (ticketData: Omit<Ticket, 'id' | 'sold' | 'remaining' | 'createdAt'>) => Ticket;
-  updateTicket: (id: string, updates: Partial<Ticket>) => void;
-  deleteTicket: (id: string) => void;
-  duplicateTicket: (id: string) => void;
-  archiveTicket: (id: string) => void;
+  createTicket: (ticketData: Omit<Ticket, 'id' | 'sold' | 'remaining' | 'createdAt'>) => Promise<Ticket>;
+  updateTicket: (id: string, updates: Partial<Ticket>) => Promise<void>;
+  deleteTicket: (id: string) => Promise<void>;
+  duplicateTicket: (id: string) => Promise<void>;
+  archiveTicket: (id: string) => Promise<void>;
 
   // Actions - Check-In
-  performCheckIn: (participantIdOrOrderId: string, method?: CheckInMethod) => { success: boolean; message: string; participant?: Participant };
+  performCheckIn: (participantIdOrOrderId: string, method?: CheckInMethod) => Promise<{ success: boolean; message: string; participant?: Participant }>;
 
   // Actions - Participants & Transactions
   updateParticipantAndTransaction: (orderId: string, updates: {
@@ -84,22 +114,22 @@ interface HCEAppContextType {
     faculty: string;
     prodi: string;
     ticketId: string;
-  }) => void;
-  deleteParticipant: (id: string) => void;
+  }) => Promise<void>;
+  deleteParticipant: (id: string) => Promise<void>;
 
   // Actions - Transactions
-  updateTransactionStatus: (orderId: string, status: PaymentStatus) => void;
+  updateTransactionStatus: (orderId: string, status: PaymentStatus) => Promise<void>;
 
   // Actions - Staff
-  addStaff: (staffData: Omit<Staff, 'id' | 'createdDate' | 'lastActive'>) => void;
-  deleteStaff: (id: string) => void;
-  toggleStaffStatus: (id: string) => void;
+  addStaff: (staffData: Omit<Staff, 'id' | 'createdDate' | 'lastActive'> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
+  deleteStaff: (id: string) => Promise<void>;
+  toggleStaffStatus: (id: string) => Promise<void>;
 
   // Actions - Partners & Sponsors
-  addMediaPartner: (partner: Omit<MediaPartner, 'id'>) => void;
-  deleteMediaPartner: (id: string) => void;
-  addSponsor: (sponsor: Omit<Sponsor, 'id'>) => void;
-  deleteSponsor: (id: string) => void;
+  addMediaPartner: (partner: Omit<MediaPartner, 'id'>) => Promise<{ success: boolean; error?: string }>;
+  deleteMediaPartner: (id: string) => Promise<void>;
+  addSponsor: (sponsor: Omit<Sponsor, 'id'>) => Promise<void>;
+  deleteSponsor: (id: string) => Promise<void>;
 
   // Helpers
   exportParticipantsCSV: () => void;
@@ -109,49 +139,166 @@ interface HCEAppContextType {
 const HCEAppContext = createContext<HCEAppContextType | undefined>(undefined);
 
 export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser] = useState({
-    name: 'Super Admin HCE',
-    email: 'superadmin@hce-event.id',
-    role: 'SUPER_ADMIN',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-  });
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
-  const [participants, setParticipants] = useState<Participant[]>(INITIAL_PARTICIPANTS);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
-  const [staffList, setStaffList] = useState<Staff[]>(INITIAL_STAFF);
-  const [mediaPartners, setMediaPartners] = useState<MediaPartner[]>(INITIAL_MEDIA_PARTNERS);
-  const [sponsors, setSponsors] = useState<Sponsor[]>(INITIAL_SPONSORS);
-  const [activities, setActivities] = useState<RecentActivity[]>(INITIAL_ACTIVITIES);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [mediaPartners, setMediaPartners] = useState<MediaPartner[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Toast Dispatcher
-  const addToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
     setToasts((prev) => [...prev, { id, message, type, timestamp: Date.now() }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  // Fetch all dynamic datasets from Supabase
+  const refreshData = useCallback(async () => {
+    try {
+      const [
+        fetchedTickets,
+        fetchedParticipants,
+        fetchedTransactions,
+        fetchedStaff,
+        fetchedPartners,
+        fetchedSponsors,
+        fetchedActivities,
+      ] = await Promise.all([
+        fetchTicketsFromSupabase(),
+        fetchParticipantsFromSupabase(),
+        fetchTransactionsFromSupabase(),
+        fetchStaffFromSupabase(),
+        fetchMediaPartnersFromSupabase(),
+        fetchSponsorsFromSupabase(),
+        fetchActivitiesFromSupabase(),
+      ]);
+
+      setTickets(fetchedTickets);
+      setParticipants(fetchedParticipants);
+      setTransactions(fetchedTransactions);
+      setStaffList(fetchedStaff);
+      setMediaPartners(fetchedPartners);
+      setSponsors(fetchedSponsors);
+      setActivities(fetchedActivities);
+    } catch (err) {
+      console.error('Failed to load data from Supabase:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Auth Session & State Sync
+  useEffect(() => {
+    async function initAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const cleanEmail = session.user.email.toLowerCase().trim();
+          const { data: staffRow } = await supabase
+            .from('staff')
+            .select('*')
+            .eq('email', cleanEmail)
+            .single();
+
+          if (staffRow && staffRow.status === 'Active') {
+            setCurrentUser({
+              id: staffRow.id,
+              name: staffRow.name,
+              email: staffRow.email,
+              role: staffRow.role,
+            });
+          } else if (session.user.user_metadata?.role) {
+            setCurrentUser({
+              name: session.user.user_metadata?.name || cleanEmail.split('@')[0],
+              email: cleanEmail,
+              role: session.user.user_metadata?.role,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Auth session check notice:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    initAuth();
+    refreshData();
+
+    // Supabase auth state change listener
+    const { data: authSub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        setCurrentUser(null);
+      } else if (event === 'SIGNED_IN' && session?.user?.email) {
+        const cleanEmail = session.user.email.toLowerCase().trim();
+        const { data: staffRow } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('email', cleanEmail)
+          .single();
+
+        if (staffRow && staffRow.status === 'Active') {
+          setCurrentUser({
+            id: staffRow.id,
+            name: staffRow.name,
+            email: staffRow.email,
+            role: staffRow.role,
+          });
+        }
+      }
+    });
+
+    return () => {
+      authSub.subscription.unsubscribe();
+    };
+  }, [refreshData]);
+
+  // Login & Logout
+  const loginUser = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const res = await signInStaffInSupabase(email, password);
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        addToast(`Selamat datang, ${res.user.name}!`, 'success');
+        return { success: true, user: res.user };
+      }
+      return { success: false, error: res.error || 'Autentikasi gagal.' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Login gagal.' };
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+  const logoutUser = async () => {
+    await signOutStaffInSupabase();
+    setCurrentUser(null);
+    addToast('Anda telah keluar dari akun.', 'info');
   };
 
   // Derived Calculations
   const stats = useMemo(() => {
-    // Ticket statistics
     const totalTickets = tickets.length;
-    // Calculate total sold based on sum of sold tickets across active/soldout tickets
     const totalTicketsSold = tickets.reduce((acc, t) => acc + (t.sold || 0), 0);
 
-    // Participant statistics
     const totalParticipants = participants.length;
     const totalCheckedIn = participants.filter((p) => p.checkInStatus === 'Checked In').length;
     const totalNotCheckedIn = totalParticipants - totalCheckedIn;
     const attendancePercentage = totalParticipants > 0 ? Math.round((totalCheckedIn / totalParticipants) * 100) : 0;
 
-    // Transaction & Revenue statistics
     const totalTransactions = transactions.length;
     const paidTransactions = transactions.filter((tx) => tx.paymentStatus === 'Paid');
     const totalRevenue = paidTransactions.reduce((acc, tx) => acc + tx.amount, 0);
@@ -178,7 +325,7 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [tickets, participants, transactions]);
 
   // Helper log activity
-  const recordActivity = (type: RecentActivity['type'], title: string, description: string) => {
+  const recordActivity = async (type: RecentActivity['type'], title: string, description: string) => {
     const newAct: RecentActivity = {
       id: 'ACT-' + Date.now(),
       type,
@@ -187,10 +334,11 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       timestamp: 'Baru saja',
     };
     setActivities((prev) => [newAct, ...prev.slice(0, 19)]);
+    await recordActivityInSupabase({ type, title, description });
   };
 
   // Ticket Operations
-  const createTicket = (ticketData: Omit<Ticket, 'id' | 'sold' | 'remaining' | 'createdAt'>): Ticket => {
+  const createTicket = async (ticketData: Omit<Ticket, 'id' | 'sold' | 'remaining' | 'createdAt'>): Promise<Ticket> => {
     const nextId = 'TCK-' + String(tickets.length + 1).padStart(3, '0');
     const newTicket: Ticket = {
       ...ticketData,
@@ -201,6 +349,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     setTickets((prev) => [newTicket, ...prev]);
+    await createTicketInSupabase(newTicket);
+
     addToast(`Tiket "${newTicket.name}" berhasil dibuat (${newTicket.status}).`, 'success');
     recordActivity(
       'ticket_created',
@@ -210,12 +360,11 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return newTicket;
   };
 
-  const updateTicket = (id: string, updates: Partial<Ticket>) => {
+  const updateTicket = async (id: string, updates: Partial<Ticket>) => {
     setTickets((prev) =>
       prev.map((t) => {
         if (t.id === id) {
           const updated = { ...t, ...updates };
-          // re-evaluate remaining & soldout status
           if (updated.quota !== undefined && updated.sold !== undefined) {
             updated.remaining = Math.max(0, updated.quota - updated.sold);
             if (updated.remaining === 0 && updated.status === 'Active') {
@@ -227,17 +376,20 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return t;
       })
     );
+
+    await updateTicketInSupabase(id, updates);
     addToast('Perubahan tiket berhasil disimpan.', 'success');
     recordActivity('ticket_updated', 'Tiket Diperbarui', `Informasi tiket ${id} telah diperbarui`);
   };
 
-  const deleteTicket = (id: string) => {
+  const deleteTicket = async (id: string) => {
     const target = tickets.find((t) => t.id === id);
     setTickets((prev) => prev.filter((t) => t.id !== id));
+    await deleteTicketInSupabase(id);
     addToast(`Tiket ${target?.name || id} berhasil dihapus.`, 'info');
   };
 
-  const duplicateTicket = (id: string) => {
+  const duplicateTicket = async (id: string) => {
     const target = tickets.find((t) => t.id === id);
     if (!target) return;
     const duplicated: Ticket = {
@@ -251,19 +403,28 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       privateLink: target.visibility === 'PRIVATE' ? `https://hce-ticket.com/t/PRIVATE-COPY-${Math.random().toString(36).substr(2, 4).toUpperCase()}` : undefined
     };
     setTickets((prev) => [duplicated, ...prev]);
+    await createTicketInSupabase(duplicated);
     addToast(`Tiket "${duplicated.name}" berhasil diduplikasi.`, 'success');
   };
 
-  const archiveTicket = (id: string) => {
-    updateTicket(id, { status: 'Archived' });
-    addToast('Tiket telah diarsipkan.', 'info');
+  const archiveTicket = async (id: string) => {
+    const target = tickets.find((t) => t.id === id);
+    if (!target) return;
+    if (target.status === 'Archived') {
+      const nextStatus = target.remaining === 0 ? 'Sold Out' : 'Active';
+      await updateTicket(id, { status: nextStatus });
+      addToast(`Arsip tiket "${target.name}" berhasil dibuka (${nextStatus}).`, 'success');
+    } else {
+      await updateTicket(id, { status: 'Archived' });
+      addToast(`Tiket "${target.name}" telah diarsipkan.`, 'info');
+    }
   };
 
   // Check-In Operation
-  const performCheckIn = (
+  const performCheckIn = async (
     query: string, 
     method: CheckInMethod = 'QR Scan'
-  ): { success: boolean; message: string; participant?: Participant } => {
+  ): Promise<{ success: boolean; message: string; participant?: Participant }> => {
     const cleanedQuery = query.trim().toLowerCase();
     if (!cleanedQuery) {
       return { success: false, message: 'Harap masukkan query pencarian atau data QR.' };
@@ -328,7 +489,6 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return copy;
     });
 
-    // Update corresponding transaction check-in status
     setTransactions((prev) =>
       prev.map((tx) =>
         tx.orderId === target.orderId
@@ -336,6 +496,9 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           : tx
       )
     );
+
+    // Save to Supabase
+    await performCheckInInSupabase(target.id, target.orderId, method);
 
     addToast(`Check-In berhasil untuk ${target.name} (${method})!`, 'success');
     recordActivity(
@@ -352,7 +515,7 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Participant & Transaction Correction
-  const updateParticipantAndTransaction = (
+  const updateParticipantAndTransaction = async (
     orderId: string,
     updates: {
       name: string;
@@ -372,7 +535,6 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const now = new Date();
     const lastUpdated = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 5)}`;
 
-    // Update participant
     setParticipants((prev) =>
       prev.map((p) => {
         if (p.orderId === orderId) {
@@ -394,7 +556,6 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })
     );
 
-    // Update transaction
     setTransactions((prev) =>
       prev.map((tx) => {
         if (tx.orderId === orderId) {
@@ -414,6 +575,13 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       })
     );
 
+    await updateParticipantAndTransactionInSupabase(orderId, {
+      ...updates,
+      ticketName,
+      ticketType,
+      price,
+    });
+
     addToast(`Data transaksi ${orderId} berhasil diperbarui.`, 'success');
     recordActivity(
       'transaction_updated',
@@ -422,15 +590,16 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
-  const deleteParticipant = (id: string) => {
+  const deleteParticipant = async (id: string) => {
     const target = participants.find((p) => p.id === id);
     if (!target) return;
     setParticipants((prev) => prev.filter((p) => p.id !== id));
     setTransactions((prev) => prev.filter((tx) => tx.orderId !== target.orderId));
+    await deleteParticipantInSupabase(id, target.orderId);
     addToast(`Peserta ${target.name} telah dihapus dari database.`, 'info');
   };
 
-  const updateTransactionStatus = (orderId: string, status: PaymentStatus) => {
+  const updateTransactionStatus = async (orderId: string, status: PaymentStatus) => {
     const now = new Date();
     const lastUpdated = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 5)}`;
 
@@ -441,42 +610,7 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       prev.map((p) => (p.orderId === orderId ? { ...p, paymentStatus: status } : p))
     );
 
-    // Sync with localStorage hce_seminar_orders if available
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('hce_seminar_orders');
-        if (raw) {
-          const orders = JSON.parse(raw);
-          const updatedOrders = orders.map((o: any) => {
-            if (o.orderId === orderId) {
-              const mappedPaymentStatus =
-                status === 'Paid'
-                  ? 'Pembayaran Berhasil'
-                  : status === 'Pending'
-                  ? 'Menunggu Konfirmasi Admin'
-                  : status === 'Failed'
-                  ? 'Pembayaran Tidak Berhasil'
-                  : 'Menunggu Pembayaran';
-              const mappedTicketStatus =
-                status === 'Paid'
-                  ? 'Tiket Aktif'
-                  : status === 'Failed'
-                  ? 'Tiket Ditolak'
-                  : 'Menunggu Konfirmasi';
-              return {
-                ...o,
-                paymentStatus: mappedPaymentStatus,
-                ticketStatus: mappedTicketStatus,
-              };
-            }
-            return o;
-          });
-          localStorage.setItem('hce_seminar_orders', JSON.stringify(updatedOrders));
-        }
-      } catch (e) {
-        console.error('Error syncing order status:', e);
-      }
-    }
+    await updateTransactionStatusInSupabase(orderId, status);
 
     const statusLabel =
       status === 'Paid'
@@ -500,53 +634,97 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   // Staff Management
-  const addStaff = (staffData: Omit<Staff, 'id' | 'createdDate' | 'lastActive'>) => {
-    const nextId = 'STF-' + String(staffList.length + 1).padStart(3, '0');
+  const addStaff = async (
+    staffData: Omit<Staff, 'id' | 'createdDate' | 'lastActive'> & { password?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const existingNums = staffList
+      .map((s) => parseInt(s.id.replace(/\D/g, ''), 10))
+      .filter((n) => !isNaN(n));
+    const maxNum = existingNums.length > 0 ? Math.max(...existingNums) : 0;
+    const nextId = 'STF-' + String(maxNum + 1).padStart(3, '0');
+
     const newStaff: Staff = {
-      ...staffData,
+      name: staffData.name,
+      email: staffData.email.toLowerCase().trim(),
+      role: staffData.role,
+      status: staffData.status,
       id: nextId,
       createdDate: new Date().toISOString().split('T')[0],
       lastActive: 'Belum pernah login',
     };
-    setStaffList((prev) => [newStaff, ...prev]);
-    addToast(`Akun staff ${newStaff.name} berhasil dibuat.`, 'success');
-    recordActivity('staff_created', 'Akun Staff Dibuat', `Staff "${newStaff.name}" (${newStaff.role}) telah ditambahkan`);
+
+    const res = await createStaffInSupabase(newStaff, staffData.password);
+    if (!res.success) {
+      addToast(`Gagal mendaftarkan akun: ${res.error}`, 'error');
+      return { success: false, error: res.error };
+    }
+
+    const finalStaff = res.staff || newStaff;
+    setStaffList((prev) => [finalStaff, ...prev.filter((s) => s.id !== finalStaff.id)]);
+    addToast(`Akun staff ${finalStaff.name} berhasil dibuat & terhubung ke Supabase Auth.`, 'success');
+    recordActivity('staff_created', 'Akun Staff Dibuat', `Staff "${finalStaff.name}" (${finalStaff.role}) telah ditambahkan`);
+    return { success: true };
   };
 
-  const deleteStaff = (id: string) => {
+  const deleteStaff = async (id: string) => {
     const target = staffList.find((s) => s.id === id);
     setStaffList((prev) => prev.filter((s) => s.id !== id));
+    await deleteStaffInSupabase(id);
     addToast(`Akun staff ${target?.name || id} berhasil dihapus.`, 'info');
   };
 
-  const toggleStaffStatus = (id: string) => {
+  const toggleStaffStatus = async (id: string) => {
+    const target = staffList.find((s) => s.id === id);
+    const nextStatus = target?.status === 'Active' ? 'Inactive' : 'Active';
     setStaffList((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: s.status === 'Active' ? 'Inactive' : 'Active' } : s))
+      prev.map((s) => (s.id === id ? { ...s, status: nextStatus } : s))
     );
+    await updateStaffStatusInSupabase(id, nextStatus);
     addToast('Status staff berhasil diperbarui.', 'success');
   };
 
   // Partners & Sponsors
-  const addMediaPartner = (partner: Omit<MediaPartner, 'id'>) => {
-    const nextId = 'MP-' + String(mediaPartners.length + 1).padStart(3, '0');
-    setMediaPartners((prev) => [...prev, { ...partner, id: nextId }]);
+  const addMediaPartner = async (
+    partner: Omit<MediaPartner, 'id'>
+  ): Promise<{ success: boolean; error?: string }> => {
+    const existingNums = mediaPartners
+      .map((m) => parseInt(m.id.replace(/\D/g, ''), 10))
+      .filter((n) => !isNaN(n));
+    const maxNum = existingNums.length > 0 ? Math.max(...existingNums) : 0;
+    const nextId = 'MP-' + String(maxNum + 1).padStart(3, '0');
+
+    const newPartner: MediaPartner = { ...partner, id: nextId };
+    const res = await createMediaPartnerInSupabase(newPartner);
+    if (!res.success) {
+      addToast(`Gagal menambahkan media partner: ${res.error}`, 'error');
+      return { success: false, error: res.error };
+    }
+
+    const finalItem: MediaPartner = { ...newPartner, id: res.id || nextId };
+    setMediaPartners((prev) => [...prev.filter((p) => p.id !== finalItem.id), finalItem]);
     addToast(`Media partner ${partner.name} berhasil ditambahkan.`, 'success');
+    return { success: true };
   };
 
-  const deleteMediaPartner = (id: string) => {
+  const deleteMediaPartner = async (id: string) => {
+    const target = mediaPartners.find((p) => p.id === id);
     setMediaPartners((prev) => prev.filter((p) => p.id !== id));
-    addToast('Media partner dihapus.', 'info');
+    await deleteMediaPartnerInSupabase(id, target?.logo);
+    addToast('Media partner dan logonya berhasil dihapus.', 'info');
   };
 
-  const addSponsor = (sponsor: Omit<Sponsor, 'id'>) => {
+  const addSponsor = async (sponsor: Omit<Sponsor, 'id'>) => {
     const nextId = 'SP-' + String(sponsors.length + 1).padStart(3, '0');
-    setSponsors((prev) => [...prev, { ...sponsor, id: nextId }]);
+    const newSponsor: Sponsor = { ...sponsor, id: nextId };
+    setSponsors((prev) => [...prev, newSponsor]);
+    await createSponsorInSupabase(newSponsor);
     addToast(`Sponsor ${sponsor.name} (${sponsor.tier}) berhasil ditambahkan.`, 'success');
     recordActivity('sponsor_added', 'Sponsor Ditambahkan', `${sponsor.name} bergabung sebagai ${sponsor.tier}`);
   };
 
-  const deleteSponsor = (id: string) => {
+  const deleteSponsor = async (id: string) => {
     setSponsors((prev) => prev.filter((s) => s.id !== id));
+    await deleteSponsorInSupabase(id);
     addToast('Sponsor dihapus.', 'info');
   };
 
@@ -647,6 +825,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <HCEAppContext.Provider
       value={{
         currentUser,
+        loginUser,
+        logoutUser,
         tickets,
         participants,
         transactions,
@@ -656,6 +836,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         activities,
         toasts,
         stats,
+        isLoading,
+        refreshData,
         addToast,
         removeToast,
         createTicket,

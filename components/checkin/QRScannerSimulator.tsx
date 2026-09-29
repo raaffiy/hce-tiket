@@ -112,7 +112,7 @@ export const QRScannerSimulator: React.FC = () => {
 
   // Handle scanned QR payload
   const handleScannedData = useCallback(
-    (rawData: string) => {
+    async (rawData: string) => {
       const now = Date.now();
       // Anti-duplicate debounce within 2.5s for same code
       if (
@@ -146,7 +146,7 @@ export const QRScannerSimulator: React.FC = () => {
       }
 
       // Perform check-in
-      const res = performCheckIn(cleanQuery, 'QR Scan');
+      const res = await performCheckIn(cleanQuery, 'QR Scan');
       const dateNow = new Date();
       const timeStr = `${dateNow.toLocaleDateString('id-ID', {
         day: 'numeric',

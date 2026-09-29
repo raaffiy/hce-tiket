@@ -76,6 +76,21 @@ export interface StaffRoleConfig {
   color: string;
 }
 
+export const STAFF_ROLE_CONFIGS: Record<StaffRole, StaffRoleConfig> = {
+  SUPER_ADMIN: {
+    key: 'SUPER_ADMIN',
+    label: 'Super Admin',
+    description: 'Akses penuh ke seluruh modul sistem (Tickets, Transaksi, Check-in, Master Data, Partner, Staff)',
+    color: 'purple',
+  },
+  STAFF: {
+    key: 'STAFF',
+    label: 'Staff (Check-In)',
+    description: 'Akses khusus untuk verifikasi dan scan barcode check-in peserta gate masuk event',
+    color: 'emerald',
+  },
+};
+
 export interface Staff {
   id: string;
   name: string;

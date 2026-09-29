@@ -1,361 +1,250 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHCEApp } from '@/context/HCEAppContext';
-import { SponsorTier } from '@/types/hce';
+import { MediaPartner } from '@/types/hce';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { FilterSelect } from '@/components/ui/FormControls';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { uploadPartnerLogoToSupabase } from '@/lib/supabaseServices';
 import {
   Handshake,
-  Award,
   Plus,
   Trash2,
   Upload,
   Image as ImageIcon,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 
-export default function PartnersAndSponsorsPage() {
-  const {
-    mediaPartners,
-    sponsors,
-    addMediaPartner,
-    deleteMediaPartner,
-    addSponsor,
-    deleteSponsor,
-  } = useHCEApp();
-
-  const [activeTab, setActiveTab] = useState<'PARTNERS' | 'SPONSORS'>('PARTNERS');
-
-  // Filter
-  const [tierFilter, setTierFilter] = useState<string>('ALL');
+export default function PartnersAndMediaPage() {
+  const { mediaPartners, addMediaPartner, deleteMediaPartner, addToast } = useHCEApp();
 
   // Modal States
   const [isAddPartnerOpen, setIsAddPartnerOpen] = useState(false);
-  const [isAddSponsorOpen, setIsAddSponsorOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{
-    id: string;
-    name: string;
-    type: 'partner' | 'sponsor';
-  } | null>(null);
+  const [partnerToDelete, setPartnerToDelete] = useState<MediaPartner | null>(null);
 
   // Add Partner Form State
-  const [partnerForm, setPartnerForm] = useState({
-    name: '',
-    logo: '/media_partners/LOGO INFO OLIMPIADE.png',
-  });
+  const [name, setName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [manualUrl, setManualUrl] = useState<string>('');
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  // Add Sponsor Form State
-  const [sponsorForm, setSponsorForm] = useState({
-    name: '',
-    logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&auto=format&fit=crop&q=80',
-    tier: 'Gold' as SponsorTier,
-  });
+  // Clean up object URL when modal closes or changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
-  // Filtered Sponsors
-  const filteredSponsors = useMemo(() => {
-    return sponsors.filter((sp) => {
-      return tierFilter === 'ALL' || sp.tier === tierFilter;
-    });
-  }, [sponsors, tierFilter]);
+  // Handle local file selection (Preview only, does NOT upload until user clicks Save)
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleCreatePartner = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!partnerForm.name.trim()) return;
-    addMediaPartner({
-      name: partnerForm.name,
-      logo: partnerForm.logo,
-      website: '',
-      instagram: '',
-      description: '',
-      displayOrder: mediaPartners.length + 1,
-      status: 'Active',
-    });
-    setIsAddPartnerOpen(false);
-    setPartnerForm({
-      name: '',
-      logo: '/media_partners/LOGO INFO OLIMPIADE.png',
-    });
+    // Validate size (Maximum 500KB)
+    const MAX_SIZE = 500 * 1024; // 500 KB
+    if (file.size > MAX_SIZE) {
+      setFileError('Ukuran file terlalu besar (Maksimal 500KB).');
+      setSelectedFile(null);
+      setPreviewUrl('');
+      return;
+    }
+
+    setFileError(null);
+    setFormError(null);
+    setSelectedFile(file);
+
+    // Create local instant preview URL
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
   };
 
-  const handleCreateSponsor = (e: React.FormEvent) => {
+  const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sponsorForm.name.trim()) return;
-    addSponsor({
-      name: sponsorForm.name,
-      logo: sponsorForm.logo,
-      tier: sponsorForm.tier,
-      website: '',
-      description: '',
-      displayOrder: sponsors.length + 1,
-      status: 'Active',
-    });
-    setIsAddSponsorOpen(false);
-    setSponsorForm({
-      name: '',
-      logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&auto=format&fit=crop&q=80',
-      tier: 'Gold',
-    });
-  };
+    setFormError(null);
 
-  const tierColors: Record<SponsorTier, string> = {
-    'Main Sponsor': 'bg-purple-100 text-purple-800 border-purple-200',
-    Gold: 'bg-amber-100 text-amber-800 border-amber-200',
-    Silver: 'bg-slate-200 text-slate-800 border-slate-300',
-    Bronze: 'bg-orange-100 text-orange-800 border-orange-200',
-    Partner: 'bg-sky-100 text-sky-800 border-sky-200',
+    if (!name.trim()) {
+      setFormError('Nama media partner wajib diisi.');
+      return;
+    }
+
+    if (!selectedFile && !manualUrl.trim()) {
+      setFormError('Silakan pilih file logo media partner (Maks. 500KB) atau masukkan URL logo.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    let finalLogoUrl = manualUrl.trim();
+
+    try {
+      // 1. Upload file to Supabase Storage ONLY upon clicking Submit button
+      if (selectedFile) {
+        const uploadRes = await uploadPartnerLogoToSupabase(selectedFile);
+        if (!uploadRes.success || !uploadRes.url) {
+          setFormError(uploadRes.error || 'Gagal mengunggah logo ke Supabase Storage.');
+          setIsSubmitting(false);
+          return;
+        }
+        finalLogoUrl = uploadRes.url;
+      }
+
+      // 2. Insert into media_partners database
+      const res = await addMediaPartner({
+        name: name.trim(),
+        logo: finalLogoUrl,
+        website: '',
+        instagram: '',
+        description: '',
+        displayOrder: mediaPartners.length + 1,
+        status: 'Active',
+      });
+
+      if (res.success) {
+        setIsAddPartnerOpen(false);
+        setName('');
+        setSelectedFile(null);
+        setPreviewUrl('');
+        setManualUrl('');
+        setFileError(null);
+        setFormError(null);
+      } else {
+        setFormError(res.error || 'Gagal menyimpan media partner ke database.');
+      }
+    } catch (err: any) {
+      setFormError(err?.message || 'Terjadi kesalahan sistem saat menyimpan.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-6 pb-16">
-      {/* Page Header */}
+      {/* Page Header (Synchronized with Homepage "Partnership & Media Network") */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-50 text-[#1A5E61] border border-teal-200/80 text-[11px] font-bold mb-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#E05A1F]" />
+            <span>Partnership &amp; Media Network</span>
+          </div>
           <h1 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
-            Media Partner & Sponsor
+            Didukung &amp; Bekerja Sama Dengan
           </h1>
-          <p className="text-xs lg:text-sm text-slate-500 mt-1">
-            Kelola data mitra publikasi dan brand sponsor resmi HIPMI Collab Expo.
+          <p className="text-xs lg:text-sm text-slate-500 mt-0.5">
+            Kelola data dan logo jaringan media partner yang ditampilkan pada halaman utama website.
           </p>
         </div>
 
-        <div>
-          {activeTab === 'PARTNERS' ? (
-            <button
-              onClick={() => setIsAddPartnerOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Media Partner
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsAddSponsorOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#E05A1F] hover:bg-[#c94d17] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Sponsor
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => {
+            setName('');
+            setSelectedFile(null);
+            setPreviewUrl('');
+            setManualUrl('');
+            setFormError(null);
+            setFileError(null);
+            setIsAddPartnerOpen(true);
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer self-start sm:self-auto hover:scale-102"
+        >
+          <Plus className="w-4 h-4" />
+          Tambah Media Partner
+        </button>
       </div>
 
-      {/* Summary Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-[#1A5E61]">
-              <Handshake className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">Total Media Partner</p>
-              <h3 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
-                {mediaPartners.length}
-              </h3>
-            </div>
+      {/* Summary Card */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-[#1A5E61]">
+            <Handshake className="w-6 h-6" />
           </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#E05A1F]">
-              <Award className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">Total Sponsor Event</p>
-              <h3 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
-                {sponsors.length}
-              </h3>
-            </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500">Total Media Partner Aktif</p>
+            <h3 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
+              {mediaPartners.length} Mitra Publikasi
+            </h3>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 gap-4">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('PARTNERS')}
-            className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'PARTNERS'
-                ? 'border-[#1A5E61] text-[#1A5E61]'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-          >
-            <Handshake className="w-4 h-4" />
-            Media Partner ({mediaPartners.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('SPONSORS')}
-            className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'SPONSORS'
-                ? 'border-[#E05A1F] text-[#E05A1F]'
-                : 'border-transparent text-slate-400 hover:text-slate-700'
-            }`}
-          >
-            <Award className="w-4 h-4" />
-            Sponsor Event ({sponsors.length})
-          </button>
-        </div>
-
-        {/* Filter Tier Sponsor */}
-        {activeTab === 'SPONSORS' && (
-          <div className="pb-2 sm:pb-0 w-full sm:w-56">
-            <FilterSelect
-              value={tierFilter}
-              onChange={(e) => setTierFilter(e.target.value)}
-              options={[
-                { value: 'ALL', label: 'Semua Tier Sponsor' },
-                { value: 'Main Sponsor', label: 'Main Sponsor' },
-                { value: 'Gold', label: 'Gold Sponsor' },
-                { value: 'Silver', label: 'Silver Sponsor' },
-                { value: 'Bronze', label: 'Bronze Sponsor' },
-                { value: 'Partner', label: 'Partner' },
-              ]}
+      {/* Media Partners Grid */}
+      <div>
+        {mediaPartners.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-8">
+            <EmptyState
+              title="Tidak ada media partner"
+              description="Belum ada data media partner yang didaftarkan ke Supabase."
+              icon={Handshake}
+              action={{
+                label: 'Tambah Media Partner',
+                onClick: () => {
+                  setName('');
+                  setSelectedFile(null);
+                  setPreviewUrl('');
+                  setManualUrl('');
+                  setFormError(null);
+                  setFileError(null);
+                  setIsAddPartnerOpen(true);
+                },
+              }}
             />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {mediaPartners.map((mp) => (
+              <div
+                key={mp.id}
+                className="group bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-[#1A5E61]/40 transition-all flex flex-col justify-between relative"
+              >
+                {/* Delete button */}
+                <button
+                  onClick={() => setPartnerToDelete(mp)}
+                  title="Hapus Media Partner"
+                  className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer opacity-80 group-hover:opacity-100 shadow-2xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Logo Container */}
+                <div className="w-full aspect-square rounded-xl bg-[#F8F1E5]/50 border border-slate-100 flex items-center justify-center p-3 mb-3 overflow-hidden">
+                  <img
+                    src={mp.logo}
+                    alt={mp.name}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                  />
+                </div>
+
+                {/* Name & ID */}
+                <div className="text-center">
+                  <h4
+                    className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 mb-0.5"
+                    title={mp.name}
+                  >
+                    {mp.name}
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-mono font-medium block">
+                    {mp.id}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* TAB 1: MEDIA PARTNER (KOTAK-KOTAK / GRID) */}
-      {activeTab === 'PARTNERS' && (
-        <div>
-          {mediaPartners.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-8">
-              <EmptyState
-                title="Tidak ada media partner"
-                description="Belum ada data media partner yang didaftarkan."
-                icon={Handshake}
-                action={{
-                  label: 'Tambah Media Partner',
-                  onClick: () => setIsAddPartnerOpen(true),
-                }}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {mediaPartners.map((mp) => (
-                <div
-                  key={mp.id}
-                  className="group bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-[#1A5E61]/40 transition-all flex flex-col justify-between relative"
-                >
-                  {/* Delete button */}
-                  <button
-                    onClick={() =>
-                      setItemToDelete({ id: mp.id, name: mp.name, type: 'partner' })
-                    }
-                    title="Hapus Media Partner"
-                    className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer opacity-80 group-hover:opacity-100 shadow-2xs"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Logo Container */}
-                  <div className="w-full aspect-square rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center p-3 mb-3 overflow-hidden">
-                    <img
-                      src={mp.logo}
-                      alt={mp.name}
-                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-
-                  {/* Name & ID */}
-                  <div className="text-center">
-                    <h4
-                      className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 mb-0.5"
-                      title={mp.name}
-                    >
-                      {mp.name}
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-mono font-medium block">
-                      {mp.id}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 2: SPONSORS (KOTAK-KOTAK / GRID) */}
-      {activeTab === 'SPONSORS' && (
-        <div>
-          {filteredSponsors.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-8">
-              <EmptyState
-                title="Tidak ada sponsor"
-                description="Belum ada data brand sponsor yang sesuai dengan filter tier."
-                icon={Award}
-                action={{
-                  label: 'Reset Filter',
-                  onClick: () => setTierFilter('ALL'),
-                }}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {filteredSponsors.map((sp) => (
-                <div
-                  key={sp.id}
-                  className="group bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-[#E05A1F]/40 transition-all flex flex-col justify-between relative"
-                >
-                  {/* Delete button */}
-                  <button
-                    onClick={() =>
-                      setItemToDelete({ id: sp.id, name: sp.name, type: 'sponsor' })
-                    }
-                    title="Hapus Sponsor"
-                    className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer opacity-80 group-hover:opacity-100 shadow-2xs"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Logo Container */}
-                  <div className="w-full aspect-square rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center p-3 mb-3 overflow-hidden">
-                    <img
-                      src={sp.logo}
-                      alt={sp.name}
-                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-
-                  {/* Tier, Name & ID */}
-                  <div className="text-center">
-                    <div className="mb-1.5">
-                      <span
-                        className={`inline-block font-bold text-[10px] px-2 py-0.5 rounded-full border ${
-                          tierColors[sp.tier] || 'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}
-                      >
-                        {sp.tier}
-                      </span>
-                    </div>
-                    <h4
-                      className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 mb-0.5"
-                      title={sp.name}
-                    >
-                      {sp.name}
-                    </h4>
-                    <span className="text-[10px] text-slate-400 font-mono font-medium block">
-                      {sp.id}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Add Media Partner Modal */}
       <Modal
         isOpen={isAddPartnerOpen}
-        onClose={() => setIsAddPartnerOpen(false)}
+        onClose={() => !isSubmitting && setIsAddPartnerOpen(false)}
         title="Tambah Media Partner"
-        subtitle="Masukkan nama dan foto/logo media partner publikasi"
+        subtitle="Pilih logo (Maks. 500KB) yang akan disimpan ke Supabase Storage"
       >
         <form onSubmit={handleCreatePartner} className="space-y-4">
           <div>
@@ -365,206 +254,114 @@ export default function PartnersAndSponsorsPage() {
             <input
               type="text"
               required
-              value={partnerForm.name}
-              onChange={(e) => setPartnerForm({ ...partnerForm, name: e.target.value })}
-              placeholder="Contoh: Media Kampus ID"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Contoh: Info Olimpiade / Pojok Event"
               className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A5E61]"
             />
           </div>
 
-          {/* Foto / Logo Upload */}
+          {/* Foto / Logo Upload preview (only uploaded when pressing Simpan) */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Foto / Logo Media Partner
+              Pilih Foto / Logo (Maks. 500KB) *
             </label>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                {partnerForm.logo ? (
+            <div className="flex items-start gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs relative">
+                {previewUrl ? (
                   <img
-                    src={partnerForm.logo}
-                    alt="Logo Preview"
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-contain p-1"
+                  />
+                ) : manualUrl ? (
+                  <img
+                    src={manualUrl}
+                    alt="Manual Preview"
                     className="w-full h-full object-contain p-1"
                   />
                 ) : (
-                  <ImageIcon className="w-6 h-6 text-slate-400" />
+                  <ImageIcon className="w-6 h-6 text-slate-300" />
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+
+              <div className="flex-1 min-w-0 space-y-1.5">
                 <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer transition-colors shadow-2xs">
                   <Upload className="w-3.5 h-3.5 text-[#1A5E61]" />
-                  <span>Pilih Foto dari Komputer</span>
+                  <span>{selectedFile ? 'Ganti File Gambar' : 'Pilih File Logo (Komputer)'}</span>
                   <input
                     type="file"
                     accept="image/*"
+                    disabled={isSubmitting}
                     className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          if (event.target?.result) {
-                            setPartnerForm({
-                              ...partnerForm,
-                              logo: event.target.result as string,
-                            });
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
+                    onChange={handleFileSelect}
                   />
                 </label>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Format PNG, JPG, JPEG, atau WebP (Maks. 2MB).
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsAddPartnerOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl transition-colors cursor-pointer"
-            >
-              Simpan Media Partner
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Add Sponsor Modal */}
-      <Modal
-        isOpen={isAddSponsorOpen}
-        onClose={() => setIsAddSponsorOpen(false)}
-        title="Tambah Brand Sponsor"
-        subtitle="Daftarkan nama brand, tier, dan foto/logo sponsor event"
-      >
-        <form onSubmit={handleCreateSponsor} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Nama Brand Sponsor *
-            </label>
-            <input
-              type="text"
-              required
-              value={sponsorForm.name}
-              onChange={(e) => setSponsorForm({ ...sponsorForm, name: e.target.value })}
-              placeholder="Contoh: PT Teknologi Utama"
-              className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05A1F]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Tier Sponsor *
-            </label>
-            <select
-              value={sponsorForm.tier}
-              onChange={(e) =>
-                setSponsorForm({
-                  ...sponsorForm,
-                  tier: e.target.value as SponsorTier,
-                })
-              }
-              className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05A1F] bg-white"
-            >
-              <option value="Main Sponsor">Main Sponsor</option>
-              <option value="Gold">Gold Sponsor</option>
-              <option value="Silver">Silver Sponsor</option>
-              <option value="Bronze">Bronze Sponsor</option>
-              <option value="Partner">Partner</option>
-            </select>
-          </div>
-
-          {/* Foto / Logo Upload */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Foto / Logo Sponsor
-            </label>
-            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
-                {sponsorForm.logo ? (
-                  <img
-                    src={sponsorForm.logo}
-                    alt="Logo Preview"
-                    className="w-full h-full object-contain p-1"
-                  />
-                ) : (
-                  <ImageIcon className="w-6 h-6 text-slate-400" />
+                {selectedFile && (
+                  <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">
+                      {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
                 )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer transition-colors shadow-2xs">
-                  <Upload className="w-3.5 h-3.5 text-[#E05A1F]" />
-                  <span>Pilih Foto dari Komputer</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                          if (event.target?.result) {
-                            setSponsorForm({
-                              ...sponsorForm,
-                              logo: event.target.result as string,
-                            });
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </label>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Format PNG, JPG, JPEG, atau WebP (Maks. 2MB).
+
+                <p className="text-[10px] text-slate-400">
+                  Format: PNG, JPG, JPEG, SVG, WebP. <strong>Maksimal ukuran: 500KB</strong>.
                 </p>
               </div>
             </div>
+
+            {fileError && (
+              <div className="mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-700">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <span className="leading-tight">{fileError}</span>
+              </div>
+            )}
           </div>
+
+          {formError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-700">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{formError}</span>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={() => setIsAddSponsorOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              onClick={() => setIsAddPartnerOpen(false)}
+              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-[#E05A1F] hover:bg-[#c94d17] rounded-xl transition-colors cursor-pointer"
+              disabled={isSubmitting || (!selectedFile && !manualUrl.trim())}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl transition-colors cursor-pointer disabled:opacity-50 shadow-xs"
             >
-              Simpan Sponsor
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {isSubmitting ? 'Mengunggah & Menyimpan...' : 'Simpan Media Partner'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
-        isOpen={!!itemToDelete}
-        onClose={() => setItemToDelete(null)}
+        isOpen={!!partnerToDelete}
+        onClose={() => setPartnerToDelete(null)}
         onConfirm={() => {
-          if (!itemToDelete) return;
-          if (itemToDelete.type === 'partner') {
-            deleteMediaPartner(itemToDelete.id);
-          } else {
-            deleteSponsor(itemToDelete.id);
+          if (partnerToDelete) {
+            deleteMediaPartner(partnerToDelete.id);
+            setPartnerToDelete(null);
           }
         }}
-        title={`Hapus ${itemToDelete?.type === 'partner' ? 'Media Partner' : 'Sponsor'}`}
-        message={`Apakah Anda yakin ingin menghapus "${itemToDelete?.name}"?`}
-        confirmText="Hapus"
+        title="Hapus Media Partner"
+        message={`Apakah Anda yakin ingin menghapus media partner "${partnerToDelete?.name}"? Data dan file gambar di Supabase Storage akan dihapus secara permanen.`}
+        confirmText="Hapus Mitra"
         variant="danger"
       />
     </div>

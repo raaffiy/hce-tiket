@@ -1,5 +1,4 @@
 import React from 'react';
-import { HCEAppProvider } from '@/context/HCEAppContext';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 
 export const metadata = {
@@ -12,9 +11,5 @@ export default function AdminRootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <HCEAppProvider>
-      <AdminLayout>{children}</AdminLayout>
-    </HCEAppProvider>
-  );
+  return <AdminLayout>{children}</AdminLayout>;
 }

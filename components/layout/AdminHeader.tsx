@@ -58,14 +58,14 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleMobileMenu }) 
             {currentUser?.name || 'PANITIA HCE'}
           </p>
           <p className="text-[10px] text-slate-400 mt-1 capitalize leading-none">
-            {currentUser?.role === 'SUPER ADMIN' ? 'Superadmin' : (currentUser?.role || 'Superadmin')}
+            {currentUser?.role === 'SUPER_ADMIN' ? 'Super Admin' : currentUser?.role === 'STAFF' ? 'Staff (Check-In)' : (currentUser?.role || 'Staff')}
           </p>
         </div>
 
-        {/* Panitia Badge */}
+        {/* Role Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 border border-slate-200/80 text-slate-700 text-[11px] font-bold">
           <User className="w-3.5 h-3.5 text-slate-600" />
-          <span>PANITIA</span>
+          <span>{currentUser?.role === 'STAFF' ? 'STAFF' : 'SUPER ADMIN'}</span>
         </div>
 
         {/* Vertical Divider */}

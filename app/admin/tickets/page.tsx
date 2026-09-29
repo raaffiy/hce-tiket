@@ -10,10 +10,12 @@ import { SearchInput, FilterSelect } from '@/components/ui/FormControls';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
+import { EditTicketModal } from '@/components/tickets/EditTicketModal';
 import {
   Plus,
   MoreVertical,
   Eye,
+  Pencil,
   Copy,
   Archive,
   Trash2,
@@ -26,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function TicketManagementPage() {
-  const { tickets, deleteTicket, duplicateTicket, archiveTicket } = useHCEApp();
+  const { tickets, updateTicket, deleteTicket, duplicateTicket, archiveTicket } = useHCEApp();
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,6 +38,7 @@ export default function TicketManagementPage() {
 
   // Modal / Action States
   const [selectedTicketForView, setSelectedTicketForView] = useState<Ticket | null>(null);
+  const [ticketToEdit, setTicketToEdit] = useState<Ticket | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [ticketToArchive, setTicketToArchive] = useState<Ticket | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
@@ -218,6 +221,17 @@ export default function TicketManagementPage() {
 
                               <button
                                 onClick={() => {
+                                  setTicketToEdit(ticket);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full px-3 py-2 text-slate-700 hover:bg-slate-50 flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5 text-[#1A5E61]" />
+                                Edit Tiket
+                              </button>
+
+                              <button
+                                onClick={() => {
                                   duplicateTicket(ticket.id);
                                   setActiveDropdownId(null);
                                 }}
@@ -232,10 +246,14 @@ export default function TicketManagementPage() {
                                   setTicketToArchive(ticket);
                                   setActiveDropdownId(null);
                                 }}
-                                className="w-full px-3 py-2 text-amber-700 hover:bg-amber-50 flex items-center gap-2 font-medium cursor-pointer"
+                                className={`w-full px-3 py-2 flex items-center gap-2 font-medium cursor-pointer ${
+                                  ticket.status === 'Archived'
+                                    ? 'text-emerald-700 hover:bg-emerald-50'
+                                    : 'text-amber-700 hover:bg-amber-50'
+                                }`}
                               >
-                                <Archive className="w-3.5 h-3.5 text-amber-500" />
-                                Arsipkan Tiket
+                                <Archive className={`w-3.5 h-3.5 ${ticket.status === 'Archived' ? 'text-emerald-600' : 'text-amber-500'}`} />
+                                {ticket.status === 'Archived' ? 'Buka Arsip Tiket' : 'Arsipkan Tiket'}
                               </button>
 
                               <div className="h-px bg-slate-100 my-1" />
@@ -401,6 +419,16 @@ export default function TicketManagementPage() {
         </Modal>
       )}
 
+      {/* Edit Ticket Modal */}
+      <EditTicketModal
+        isOpen={!!ticketToEdit}
+        ticket={ticketToEdit}
+        onClose={() => setTicketToEdit(null)}
+        onSave={async (id, updates) => {
+          await updateTicket(id, updates);
+        }}
+      />
+
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!ticketToDelete}
@@ -414,17 +442,21 @@ export default function TicketManagementPage() {
         variant="danger"
       />
 
-      {/* Archive Confirmation Dialog */}
+      {/* Archive / Unarchive Confirmation Dialog */}
       <ConfirmDialog
         isOpen={!!ticketToArchive}
         onClose={() => setTicketToArchive(null)}
         onConfirm={() => {
           if (ticketToArchive) archiveTicket(ticketToArchive.id);
         }}
-        title="Arsipkan Tiket"
-        message={`Apakah Anda yakin ingin mengarsipkan tiket "${ticketToArchive?.name}"? Tiket tidak akan muncul di publik.`}
-        confirmText="Arsipkan"
-        variant="warning"
+        title={ticketToArchive?.status === 'Archived' ? 'Buka Arsip Tiket' : 'Arsipkan Tiket'}
+        message={
+          ticketToArchive?.status === 'Archived'
+            ? `Apakah Anda yakin ingin membuka arsip tiket "${ticketToArchive?.name}"? Tiket akan kembali aktif dan dapat dibeli oleh publik.`
+            : `Apakah Anda yakin ingin mengarsipkan tiket "${ticketToArchive?.name}"? Tiket tidak akan muncul di publik.`
+        }
+        confirmText={ticketToArchive?.status === 'Archived' ? 'Buka Arsip' : 'Arsipkan'}
+        variant={ticketToArchive?.status === 'Archived' ? 'info' : 'warning'}
       />
     </div>
   );
