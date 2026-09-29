@@ -1,7 +1,7 @@
 export type TicketBadgeType = 'EARLY' | 'NORMAL' | 'EXTEND';
 export type TicketType = 'FREE' | 'PAID';
 export type TicketVisibility = 'PUBLIC' | 'PRIVATE';
-export type TicketStatus = 'Draft' | 'Active' | 'Paused' | 'Sold Out' | 'Expired' | 'Archived';
+export type TicketStatus = 'Active' | 'Sold Out' | 'Archived';
 
 export interface Ticket {
   id: string;
@@ -40,6 +40,7 @@ export interface Participant {
   ticketType: TicketType;
   price: number;
   paymentStatus: PaymentStatus;
+  paymentProof?: string;
   checkInStatus: CheckInStatus;
   checkInTime?: string;
   checkedInMethod?: CheckInMethod;
@@ -58,6 +59,7 @@ export interface Transaction {
   ticketType: TicketType;
   amount: number;
   paymentStatus: PaymentStatus;
+  paymentProof?: string;
   checkInStatus: CheckInStatus;
   paymentMethod: string;
   lastUpdated: string;
@@ -65,10 +67,7 @@ export interface Transaction {
 
 export type StaffRole = 
   | 'SUPER_ADMIN' 
-  | 'ADMIN_TICKET' 
-  | 'CHECKIN_STAFF' 
-  | 'FINANCE' 
-  | 'CONTENT_STAFF';
+  | 'STAFF';
 
 export interface StaffRoleConfig {
   key: StaffRole;

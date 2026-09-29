@@ -1,22 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useHCEApp } from '@/context/HCEAppContext';
 import { SponsorTier } from '@/types/hce';
-import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { FilterSelect } from '@/components/ui/FormControls';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   Handshake,
   Award,
   Plus,
   Trash2,
-  Globe,
-  Share2,
-  Sparkles,
   Upload,
   Image as ImageIcon,
-  Check,
 } from 'lucide-react';
 
 export default function PartnersAndSponsorsPage() {
@@ -31,67 +28,87 @@ export default function PartnersAndSponsorsPage() {
 
   const [activeTab, setActiveTab] = useState<'PARTNERS' | 'SPONSORS'>('PARTNERS');
 
+  // Filter
+  const [tierFilter, setTierFilter] = useState<string>('ALL');
+
   // Modal States
   const [isAddPartnerOpen, setIsAddPartnerOpen] = useState(false);
   const [isAddSponsorOpen, setIsAddSponsorOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'partner' | 'sponsor' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{
+    id: string;
+    name: string;
+    type: 'partner' | 'sponsor';
+  } | null>(null);
 
   // Add Partner Form State
   const [partnerForm, setPartnerForm] = useState({
     name: '',
-    logo: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&auto=format&fit=crop&q=80',
-    website: '',
-    instagram: '',
-    description: '',
-    displayOrder: 1,
-    status: 'Active' as 'Active' | 'Inactive',
+    logo: '/media_partners/LOGO INFO OLIMPIADE.png',
   });
 
   // Add Sponsor Form State
   const [sponsorForm, setSponsorForm] = useState({
     name: '',
     logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&auto=format&fit=crop&q=80',
-    website: '',
-    description: '',
     tier: 'Gold' as SponsorTier,
-    displayOrder: 1,
-    status: 'Active' as 'Active' | 'Inactive',
   });
+
+  // Filtered Sponsors
+  const filteredSponsors = useMemo(() => {
+    return sponsors.filter((sp) => {
+      return tierFilter === 'ALL' || sp.tier === tierFilter;
+    });
+  }, [sponsors, tierFilter]);
 
   const handleCreatePartner = (e: React.FormEvent) => {
     e.preventDefault();
     if (!partnerForm.name.trim()) return;
-    addMediaPartner(partnerForm);
-    setIsAddPartnerOpen(false);
-    setPartnerForm({
-      name: '',
-      logo: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=200&auto=format&fit=crop&q=80',
+    addMediaPartner({
+      name: partnerForm.name,
+      logo: partnerForm.logo,
       website: '',
       instagram: '',
       description: '',
       displayOrder: mediaPartners.length + 1,
       status: 'Active',
     });
+    setIsAddPartnerOpen(false);
+    setPartnerForm({
+      name: '',
+      logo: '/media_partners/LOGO INFO OLIMPIADE.png',
+    });
   };
 
   const handleCreateSponsor = (e: React.FormEvent) => {
     e.preventDefault();
     if (!sponsorForm.name.trim()) return;
-    addSponsor(sponsorForm);
+    addSponsor({
+      name: sponsorForm.name,
+      logo: sponsorForm.logo,
+      tier: sponsorForm.tier,
+      website: '',
+      description: '',
+      displayOrder: sponsors.length + 1,
+      status: 'Active',
+    });
     setIsAddSponsorOpen(false);
     setSponsorForm({
       name: '',
       logo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&auto=format&fit=crop&q=80',
-      website: '',
-      description: '',
       tier: 'Gold',
-      displayOrder: sponsors.length + 1,
-      status: 'Active',
     });
   };
 
+  const tierColors: Record<SponsorTier, string> = {
+    'Main Sponsor': 'bg-purple-100 text-purple-800 border-purple-200',
+    Gold: 'bg-amber-100 text-amber-800 border-amber-200',
+    Silver: 'bg-slate-200 text-slate-800 border-slate-300',
+    Bronze: 'bg-orange-100 text-orange-800 border-orange-200',
+    Partner: 'bg-sky-100 text-sky-800 border-sky-200',
+  };
+
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-6 pb-16">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -99,7 +116,7 @@ export default function PartnersAndSponsorsPage() {
             Media Partner & Sponsor
           </h1>
           <p className="text-xs lg:text-sm text-slate-500 mt-1">
-            Kelola data mitra publikasi dan brand sponsor yang tampil pada landing page event.
+            Kelola data mitra publikasi dan brand sponsor resmi HIPMI Collab Expo.
           </p>
         </div>
 
@@ -107,301 +124,266 @@ export default function PartnersAndSponsorsPage() {
           {activeTab === 'PARTNERS' ? (
             <button
               onClick={() => setIsAddPartnerOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              + Tambah Media Partner
+              Tambah Media Partner
             </button>
           ) : (
             <button
               onClick={() => setIsAddSponsorOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#E05A1F] hover:bg-[#c94d17] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#E05A1F] hover:bg-[#c94d17] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              + Tambah Sponsor
+              Tambah Sponsor
             </button>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6">
-        <button
-          onClick={() => setActiveTab('PARTNERS')}
-          className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors ${
-            activeTab === 'PARTNERS'
-              ? 'border-[#1A5E61] text-[#1A5E61]'
-              : 'border-transparent text-slate-400 hover:text-slate-700'
-          }`}
-        >
-          <Handshake className="w-4 h-4" />
-          Media Partner ({mediaPartners.length})
-        </button>
+      {/* Summary Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-[#1A5E61]">
+              <Handshake className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Total Media Partner</p>
+              <h3 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
+                {mediaPartners.length}
+              </h3>
+            </div>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setActiveTab('SPONSORS')}
-          className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors ${
-            activeTab === 'SPONSORS'
-              ? 'border-[#E05A1F] text-[#E05A1F]'
-              : 'border-transparent text-slate-400 hover:text-slate-700'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          Sponsor Event ({sponsors.length})
-        </button>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#E05A1F]">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Total Sponsor Event</p>
+              <h3 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
+                {sponsors.length}
+              </h3>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* TAB 1: MEDIA PARTNER */}
+      {/* Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 gap-4">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('PARTNERS')}
+            className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'PARTNERS'
+                ? 'border-[#1A5E61] text-[#1A5E61]'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Handshake className="w-4 h-4" />
+            Media Partner ({mediaPartners.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('SPONSORS')}
+            className={`pb-3 font-bold text-sm flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'SPONSORS'
+                ? 'border-[#E05A1F] text-[#E05A1F]'
+                : 'border-transparent text-slate-400 hover:text-slate-700'
+            }`}
+          >
+            <Award className="w-4 h-4" />
+            Sponsor Event ({sponsors.length})
+          </button>
+        </div>
+
+        {/* Filter Tier Sponsor */}
+        {activeTab === 'SPONSORS' && (
+          <div className="pb-2 sm:pb-0 w-full sm:w-56">
+            <FilterSelect
+              value={tierFilter}
+              onChange={(e) => setTierFilter(e.target.value)}
+              options={[
+                { value: 'ALL', label: 'Semua Tier Sponsor' },
+                { value: 'Main Sponsor', label: 'Main Sponsor' },
+                { value: 'Gold', label: 'Gold Sponsor' },
+                { value: 'Silver', label: 'Silver Sponsor' },
+                { value: 'Bronze', label: 'Bronze Sponsor' },
+                { value: 'Partner', label: 'Partner' },
+              ]}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* TAB 1: MEDIA PARTNER (KOTAK-KOTAK / GRID) */}
       {activeTab === 'PARTNERS' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50/90 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
-                  <tr>
-                    <th className="px-5 py-4">Media Partner</th>
-                    <th className="px-4 py-4">Website / Media</th>
-                    <th className="px-4 py-4">Deskripsi</th>
-                    <th className="px-3 py-4 text-center">Urutan</th>
-                    <th className="px-3 py-4 text-center">Status</th>
-                    <th className="px-4 py-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {mediaPartners.map((mp) => (
-                    <tr key={mp.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={mp.logo}
-                            alt={mp.name}
-                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
-                          />
-                          <div>
-                            <span className="font-bold text-slate-900 text-sm block">{mp.name}</span>
-                            <span className="text-[11px] text-slate-400 font-mono">{mp.id}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 space-y-0.5">
-                        <a
-                          href={mp.website}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-[#1A5E61] hover:underline font-medium flex items-center gap-1"
-                        >
-                          <Globe className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-40">{mp.website.replace('https://', '')}</span>
-                        </a>
-                        <p className="text-slate-400 text-[11px] flex items-center gap-1">
-                          <Share2 className="w-3.5 h-3.5" />
-                          {mp.instagram}
-                        </p>
-                      </td>
-                      <td className="px-4 py-4 max-w-xs text-slate-600 truncate">{mp.description}</td>
-                      <td className="px-3 py-4 text-center font-bold text-slate-700">{mp.displayOrder}</td>
-                      <td className="px-3 py-4 text-center">
-                        <StatusBadge status={mp.status} size="sm" />
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <button
-                          onClick={() => setItemToDelete({ id: mp.id, name: mp.name, type: 'partner' })}
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: SPONSORS */}
-      {activeTab === 'SPONSORS' && (
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50/90 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
-                  <tr>
-                    <th className="px-5 py-4">Sponsor Brand</th>
-                    <th className="px-4 py-4">Sponsor Tier</th>
-                    <th className="px-4 py-4">Website</th>
-                    <th className="px-4 py-4">Deskripsi</th>
-                    <th className="px-3 py-4 text-center">Urutan</th>
-                    <th className="px-3 py-4 text-center">Status</th>
-                    <th className="px-4 py-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sponsors.map((sp) => {
-                    const tierColors: Record<SponsorTier, string> = {
-                      'Main Sponsor': 'bg-purple-100 text-purple-800 border-purple-200',
-                      Gold: 'bg-amber-100 text-amber-800 border-amber-200',
-                      Silver: 'bg-slate-200 text-slate-800 border-slate-300',
-                      Bronze: 'bg-orange-100 text-orange-800 border-orange-200',
-                      Partner: 'bg-sky-100 text-sky-800 border-sky-200',
-                    };
-
-                    return (
-                      <tr key={sp.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={sp.logo}
-                              alt={sp.name}
-                              className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
-                            />
-                            <div>
-                              <span className="font-bold text-slate-900 text-sm block">{sp.name}</span>
-                              <span className="text-[11px] text-slate-400 font-mono">{sp.id}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className={`inline-block font-bold text-[11px] px-2.5 py-0.5 rounded-full border ${tierColors[sp.tier]}`}
-                          >
-                            {sp.tier}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          <a
-                            href={sp.website}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[#1A5E61] hover:underline font-medium flex items-center gap-1"
-                          >
-                            <Globe className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-40">{sp.website.replace('https://', '')}</span>
-                          </a>
-                        </td>
-                        <td className="px-4 py-4 max-w-xs text-slate-600 truncate">{sp.description}</td>
-                        <td className="px-3 py-4 text-center font-bold text-slate-700">{sp.displayOrder}</td>
-                        <td className="px-3 py-4 text-center">
-                          <StatusBadge status={sp.status} size="sm" />
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <button
-                            onClick={() => setItemToDelete({ id: sp.id, name: sp.name, type: 'sponsor' })}
-                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* LANDING PAGE PREVIEW SECTION */}
-      <div className="bg-gradient-to-br from-slate-900 via-[#102A43] to-slate-900 rounded-3xl p-6 lg:p-8 text-white shadow-xl border border-slate-800 space-y-6">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-amber-400" />
-            <div>
-              <h3 className="text-base font-bold text-white">Preview Tampilan Landing Page</h3>
-              <p className="text-xs text-slate-300">
-                Simulasi visual bagian Media Partner & Sponsor pada website publik HCE 2026.
-              </p>
-            </div>
-          </div>
-          <span className="text-[11px] font-mono bg-white/10 px-2.5 py-1 rounded-full text-slate-300">
-            Live Preview Component
-          </span>
-        </div>
-
-        {/* Sponsor Grid Section */}
         <div>
-          <p className="text-center text-xs uppercase tracking-widest font-bold text-[#E05A1F] mb-4">
-            — OFFICIAL SPONSORS —
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            {sponsors
-              .filter((s) => s.status === 'Active')
-              .map((s) => (
+          {mediaPartners.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8">
+              <EmptyState
+                title="Tidak ada media partner"
+                description="Belum ada data media partner yang didaftarkan."
+                icon={Handshake}
+                action={{
+                  label: 'Tambah Media Partner',
+                  onClick: () => setIsAddPartnerOpen(true),
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {mediaPartners.map((mp) => (
                 <div
-                  key={s.id}
-                  className="bg-white/5 hover:bg-white/10 p-3.5 rounded-2xl border border-white/10 flex items-center gap-3 backdrop-blur-xs transition-all hover:scale-105"
+                  key={mp.id}
+                  className="group bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-[#1A5E61]/40 transition-all flex flex-col justify-between relative"
                 >
-                  <img
-                    src={s.logo}
-                    alt={s.name}
-                    className="w-10 h-10 rounded-xl object-cover border border-white/20"
-                  />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-white leading-tight">{s.name}</p>
-                    <span className="text-[10px] text-amber-400 font-semibold">{s.tier}</span>
+                  {/* Delete button */}
+                  <button
+                    onClick={() =>
+                      setItemToDelete({ id: mp.id, name: mp.name, type: 'partner' })
+                    }
+                    title="Hapus Media Partner"
+                    className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer opacity-80 group-hover:opacity-100 shadow-2xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Logo Container */}
+                  <div className="w-full aspect-square rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center p-3 mb-3 overflow-hidden">
+                    <img
+                      src={mp.logo}
+                      alt={mp.name}
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+
+                  {/* Name & ID */}
+                  <div className="text-center">
+                    <h4
+                      className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 mb-0.5"
+                      title={mp.name}
+                    >
+                      {mp.name}
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-mono font-medium block">
+                      {mp.id}
+                    </span>
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+          )}
         </div>
+      )}
 
-        {/* Media Partner Grid Section */}
-        <div className="pt-4 border-t border-white/10">
-          <p className="text-center text-xs uppercase tracking-widest font-bold text-sky-400 mb-4">
-            — MEDIA PARTNERS —
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-5">
-            {mediaPartners
-              .filter((m) => m.status === 'Active')
-              .map((m) => (
+      {/* TAB 2: SPONSORS (KOTAK-KOTAK / GRID) */}
+      {activeTab === 'SPONSORS' && (
+        <div>
+          {filteredSponsors.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8">
+              <EmptyState
+                title="Tidak ada sponsor"
+                description="Belum ada data brand sponsor yang sesuai dengan filter tier."
+                icon={Award}
+                action={{
+                  label: 'Reset Filter',
+                  onClick: () => setTierFilter('ALL'),
+                }}
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {filteredSponsors.map((sp) => (
                 <div
-                  key={m.id}
-                  className="bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-xl border border-white/10 flex items-center gap-2.5 backdrop-blur-xs transition-all"
+                  key={sp.id}
+                  className="group bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs hover:shadow-md hover:border-[#E05A1F]/40 transition-all flex flex-col justify-between relative"
                 >
-                  <img
-                    src={m.logo}
-                    alt={m.name}
-                    className="w-7 h-7 rounded-lg object-cover border border-white/20"
-                  />
-                  <span className="text-xs font-medium text-slate-200">{m.name}</span>
+                  {/* Delete button */}
+                  <button
+                    onClick={() =>
+                      setItemToDelete({ id: sp.id, name: sp.name, type: 'sponsor' })
+                    }
+                    title="Hapus Sponsor"
+                    className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer opacity-80 group-hover:opacity-100 shadow-2xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Logo Container */}
+                  <div className="w-full aspect-square rounded-xl bg-slate-50/80 border border-slate-100 flex items-center justify-center p-3 mb-3 overflow-hidden">
+                    <img
+                      src={sp.logo}
+                      alt={sp.name}
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+
+                  {/* Tier, Name & ID */}
+                  <div className="text-center">
+                    <div className="mb-1.5">
+                      <span
+                        className={`inline-block font-bold text-[10px] px-2 py-0.5 rounded-full border ${
+                          tierColors[sp.tier] || 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {sp.tier}
+                      </span>
+                    </div>
+                    <h4
+                      className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 mb-0.5"
+                      title={sp.name}
+                    >
+                      {sp.name}
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-mono font-medium block">
+                      {sp.id}
+                    </span>
+                  </div>
                 </div>
               ))}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Add Media Partner Modal */}
       <Modal
         isOpen={isAddPartnerOpen}
         onClose={() => setIsAddPartnerOpen(false)}
         title="Tambah Media Partner"
-        subtitle="Masukkan profil media rekanan publikasi"
+        subtitle="Masukkan nama dan foto/logo media partner publikasi"
       >
         <form onSubmit={handleCreatePartner} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Nama Media Partner *</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Nama Media Partner *
+            </label>
             <input
               type="text"
               required
               value={partnerForm.name}
               onChange={(e) => setPartnerForm({ ...partnerForm, name: e.target.value })}
               placeholder="Contoh: Media Kampus ID"
-              className="w-full px-3 py-2 text-xs border rounded-xl"
+              className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1A5E61]"
             />
           </div>
 
           {/* Foto / Logo Upload */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Foto / Logo Media Partner</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Foto / Logo Media Partner
+            </label>
             <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
                 {partnerForm.logo ? (
                   <img
                     src={partnerForm.logo}
                     alt="Logo Preview"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                 ) : (
                   <ImageIcon className="w-6 h-6 text-slate-400" />
@@ -439,61 +421,17 @@ export default function PartnersAndSponsorsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Atau Gunakan Logo Image URL</label>
-            <input
-              type="text"
-              value={partnerForm.logo}
-              onChange={(e) => setPartnerForm({ ...partnerForm, logo: e.target.value })}
-              placeholder="https://..."
-              className="w-full px-3 py-2 text-xs border rounded-xl bg-white font-mono text-[11px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Website</label>
-              <input
-                type="text"
-                value={partnerForm.website}
-                onChange={(e) => setPartnerForm({ ...partnerForm, website: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-3 py-2 text-xs border rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Instagram</label>
-              <input
-                type="text"
-                value={partnerForm.instagram}
-                onChange={(e) => setPartnerForm({ ...partnerForm, instagram: e.target.value })}
-                placeholder="@mediakampus"
-                className="w-full px-3 py-2 text-xs border rounded-xl"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi Singkat</label>
-            <textarea
-              rows={2}
-              value={partnerForm.description}
-              onChange={(e) => setPartnerForm({ ...partnerForm, description: e.target.value })}
-              className="w-full px-3 py-2 text-xs border rounded-xl"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsAddPartnerOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600"
+              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] rounded-xl"
+              className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl transition-colors cursor-pointer"
             >
               Simpan Media Partner
             </button>
@@ -506,58 +444,57 @@ export default function PartnersAndSponsorsPage() {
         isOpen={isAddSponsorOpen}
         onClose={() => setIsAddSponsorOpen(false)}
         title="Tambah Brand Sponsor"
-        subtitle="Daftarkan tier dan profil sponsor event"
+        subtitle="Daftarkan nama brand, tier, dan foto/logo sponsor event"
       >
         <form onSubmit={handleCreateSponsor} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Nama Sponsor *</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Nama Brand Sponsor *
+            </label>
             <input
               type="text"
               required
               value={sponsorForm.name}
               onChange={(e) => setSponsorForm({ ...sponsorForm, name: e.target.value })}
               placeholder="Contoh: PT Teknologi Utama"
-              className="w-full px-3 py-2 text-xs border rounded-xl"
+              className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05A1F]"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Sponsor Tier *</label>
-              <select
-                value={sponsorForm.tier}
-                onChange={(e) => setSponsorForm({ ...sponsorForm, tier: e.target.value as SponsorTier })}
-                className="w-full px-3 py-2 text-xs border rounded-xl bg-white"
-              >
-                <option value="Main Sponsor">Main Sponsor</option>
-                <option value="Gold">Gold Sponsor</option>
-                <option value="Silver">Silver Sponsor</option>
-                <option value="Bronze">Bronze Sponsor</option>
-                <option value="Partner">Partner</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Website</label>
-              <input
-                type="text"
-                value={sponsorForm.website}
-                onChange={(e) => setSponsorForm({ ...sponsorForm, website: e.target.value })}
-                placeholder="https://..."
-                className="w-full px-3 py-2 text-xs border rounded-xl"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Tier Sponsor *
+            </label>
+            <select
+              value={sponsorForm.tier}
+              onChange={(e) =>
+                setSponsorForm({
+                  ...sponsorForm,
+                  tier: e.target.value as SponsorTier,
+                })
+              }
+              className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E05A1F] bg-white"
+            >
+              <option value="Main Sponsor">Main Sponsor</option>
+              <option value="Gold">Gold Sponsor</option>
+              <option value="Silver">Silver Sponsor</option>
+              <option value="Bronze">Bronze Sponsor</option>
+              <option value="Partner">Partner</option>
+            </select>
           </div>
 
           {/* Foto / Logo Upload */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Foto / Logo Sponsor</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Foto / Logo Sponsor
+            </label>
             <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-2xs">
                 {sponsorForm.logo ? (
                   <img
                     src={sponsorForm.logo}
                     alt="Logo Preview"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                 ) : (
                   <ImageIcon className="w-6 h-6 text-slate-400" />
@@ -595,38 +532,17 @@ export default function PartnersAndSponsorsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Atau Gunakan Logo Image URL</label>
-            <input
-              type="text"
-              value={sponsorForm.logo}
-              onChange={(e) => setSponsorForm({ ...sponsorForm, logo: e.target.value })}
-              placeholder="https://..."
-              className="w-full px-3 py-2 text-xs border rounded-xl bg-white font-mono text-[11px]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Deskripsi Singkat</label>
-            <textarea
-              rows={2}
-              value={sponsorForm.description}
-              onChange={(e) => setSponsorForm({ ...sponsorForm, description: e.target.value })}
-              className="w-full px-3 py-2 text-xs border rounded-xl"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsAddSponsorOpen(false)}
-              className="px-4 py-2 text-xs font-medium text-slate-600"
+              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-[#E05A1F] rounded-xl"
+              className="px-4 py-2 text-xs font-bold text-white bg-[#E05A1F] hover:bg-[#c94d17] rounded-xl transition-colors cursor-pointer"
             >
               Simpan Sponsor
             </button>

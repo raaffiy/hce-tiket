@@ -48,8 +48,21 @@ export interface SeminarOrder {
   quantity: number;
   totalPrice: number;
   paymentMethod: string;
-  paymentStatus: "Menunggu Pembayaran" | "Pembayaran Berhasil" | "Pembayaran Gagal";
-  ticketStatus: "Tiket Aktif" | "Tiket Digunakan" | "Tiket Belum Dibayar";
+  paymentProof?: string;
+  paymentStatus: 
+    | "Menunggu Konfirmasi Admin" 
+    | "Pembayaran Berhasil" 
+    | "Pembayaran Tidak Berhasil" 
+    | "Menunggu Pembayaran"
+    | "Paid" 
+    | "Pending" 
+    | "Failed";
+  ticketStatus: 
+    | "Tiket Aktif" 
+    | "Menunggu Konfirmasi" 
+    | "Tiket Digunakan" 
+    | "Tiket Belum Dibayar" 
+    | "Tiket Ditolak";
   createdAt: string;
   customer: {
     fullName: string;
@@ -291,6 +304,7 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
     quantity: 1,
     totalPrice: 85000,
     paymentMethod: "QRIS Instant",
+    paymentProof: "/scanqr.jpeg",
     paymentStatus: "Pembayaran Berhasil",
     ticketStatus: "Tiket Aktif",
     createdAt: "2026-09-26T10:30:00Z",
@@ -304,6 +318,28 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
     },
   },
   {
+    orderId: "ORD-2026-00126",
+    ticketCode: "SEM-2026-00126",
+    ticketCategoryId: "presale",
+    ticketCategoryName: "Presale 1",
+    ticketPrice: 65000,
+    quantity: 1,
+    totalPrice: 65000,
+    paymentMethod: "Transfer Bank Mandiri",
+    paymentProof: "/scanqr.jpeg",
+    paymentStatus: "Menunggu Konfirmasi Admin",
+    ticketStatus: "Menunggu Konfirmasi",
+    createdAt: "2026-09-28T16:20:00Z",
+    customer: {
+      fullName: "Muhammad Farhan",
+      email: "farhan@student.telkomuniversity.ac.id",
+      phone: "085812348877",
+      nim: "1201220054",
+      faculty: "Fakultas Rekayasa Industri",
+      studyProgram: "S1 Teknik Industri",
+    },
+  },
+  {
     orderId: "ORD-2026-00088",
     ticketCode: "SEM-2026-00088",
     ticketCategoryId: "regular",
@@ -312,6 +348,7 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
     quantity: 2,
     totalPrice: 100000,
     paymentMethod: "Transfer Bank BCA",
+    paymentProof: "/scanqr.jpeg",
     paymentStatus: "Pembayaran Berhasil",
     ticketStatus: "Tiket Aktif",
     createdAt: "2026-09-25T14:15:00Z",
@@ -322,6 +359,28 @@ export const INITIAL_ORDERS: SeminarOrder[] = [
       nim: "1301220199",
       faculty: "Fakultas Informatika",
       studyProgram: "S1 Informatika",
+    },
+  },
+  {
+    orderId: "ORD-2026-00099",
+    ticketCode: "SEM-2026-00099",
+    ticketCategoryId: "regular",
+    ticketCategoryName: "Regular Main Event",
+    ticketPrice: 50000,
+    quantity: 1,
+    totalPrice: 50000,
+    paymentMethod: "Transfer Bank BCA",
+    paymentProof: "/scanqr.jpeg",
+    paymentStatus: "Pembayaran Tidak Berhasil",
+    ticketStatus: "Tiket Ditolak",
+    createdAt: "2026-09-27T08:10:00Z",
+    customer: {
+      fullName: "Budi Santoso",
+      email: "budi.santoso@gmail.com",
+      phone: "081299887766",
+      nim: "1101220011",
+      faculty: "Fakultas Teknik Elektro",
+      studyProgram: "S1 Teknik Telekomunikasi",
     },
   },
 ];

@@ -76,3 +76,19 @@ body {
   color: var(--color-hce-navy);
   font-family: var(--font-sans);
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #102a43 !important;
+  }
+
+  nav, footer, .no-print {
+    display: none !important;
+  }
+}

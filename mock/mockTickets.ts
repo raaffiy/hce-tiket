@@ -119,7 +119,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     startDate: '2026-09-22T08:00',
     endDate: '2026-09-26T20:00',
     benefits: ['Exclusive Workshop Class', 'Project Mentoring', 'Certificate of Completion', 'Toolkit & Assets'],
-    status: 'Draft',
+    status: 'Active',
     createdAt: '2026-09-21T08:30:00Z',
   },
   {

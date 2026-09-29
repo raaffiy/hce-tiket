@@ -246,12 +246,12 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       name: `${target.name} (Copy)`,
       sold: 0,
       remaining: target.quota,
-      status: 'Draft',
+      status: 'Active',
       createdAt: new Date().toISOString(),
       privateLink: target.visibility === 'PRIVATE' ? `https://hce-ticket.com/t/PRIVATE-COPY-${Math.random().toString(36).substr(2, 4).toUpperCase()}` : undefined
     };
     setTickets((prev) => [duplicated, ...prev]);
-    addToast(`Tiket "${duplicated.name}" berhasil diduplikasi sebagai Draft.`, 'success');
+    addToast(`Tiket "${duplicated.name}" berhasil diduplikasi.`, 'success');
   };
 
   const archiveTicket = (id: string) => {
@@ -284,6 +284,24 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const target = participants[participantIndex];
+
+    // Check payment confirmation status
+    if (target.paymentStatus !== 'Paid') {
+      let statusDesc = 'Pembayaran Belum Dikonfirmasi';
+      if (target.paymentStatus === 'Pending') {
+        statusDesc = 'Status: "Menunggu Konfirmasi Admin". Harap verifikasi bukti transfer peserta di menu Transactions terlebih dahulu.';
+      } else if (target.paymentStatus === 'Failed') {
+        statusDesc = 'Status: "Pembayaran Tidak Berhasil". Bukti transfer ditolak atau tidak valid. QR Code tidak dapat digunakan untuk Check-in.';
+      } else if (target.paymentStatus === 'Refunded') {
+        statusDesc = 'Status: "Refunded". Tiket ini telah dibatalkan / di-refund.';
+      }
+      addToast(`Check-In Ditolak: ${statusDesc}`, 'error');
+      return { 
+        success: false, 
+        message: `Check-in ditolak. ${statusDesc}`,
+        participant: target 
+      };
+    }
 
     if (target.checkInStatus === 'Checked In') {
       addToast(`Peserta ${target.name} sudah check-in sebelumnya pada ${target.checkInTime}.`, 'warning');
@@ -413,13 +431,72 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const updateTransactionStatus = (orderId: string, status: PaymentStatus) => {
+    const now = new Date();
+    const lastUpdated = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 5)}`;
+
     setTransactions((prev) =>
-      prev.map((tx) => (tx.orderId === orderId ? { ...tx, paymentStatus: status } : tx))
+      prev.map((tx) => (tx.orderId === orderId ? { ...tx, paymentStatus: status, lastUpdated } : tx))
     );
     setParticipants((prev) =>
       prev.map((p) => (p.orderId === orderId ? { ...p, paymentStatus: status } : p))
     );
-    addToast(`Status pembayaran order ${orderId} diubah menjadi ${status}.`, 'success');
+
+    // Sync with localStorage hce_seminar_orders if available
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('hce_seminar_orders');
+        if (raw) {
+          const orders = JSON.parse(raw);
+          const updatedOrders = orders.map((o: any) => {
+            if (o.orderId === orderId) {
+              const mappedPaymentStatus =
+                status === 'Paid'
+                  ? 'Pembayaran Berhasil'
+                  : status === 'Pending'
+                  ? 'Menunggu Konfirmasi Admin'
+                  : status === 'Failed'
+                  ? 'Pembayaran Tidak Berhasil'
+                  : 'Menunggu Pembayaran';
+              const mappedTicketStatus =
+                status === 'Paid'
+                  ? 'Tiket Aktif'
+                  : status === 'Failed'
+                  ? 'Tiket Ditolak'
+                  : 'Menunggu Konfirmasi';
+              return {
+                ...o,
+                paymentStatus: mappedPaymentStatus,
+                ticketStatus: mappedTicketStatus,
+              };
+            }
+            return o;
+          });
+          localStorage.setItem('hce_seminar_orders', JSON.stringify(updatedOrders));
+        }
+      } catch (e) {
+        console.error('Error syncing order status:', e);
+      }
+    }
+
+    const statusLabel =
+      status === 'Paid'
+        ? 'Pembayaran Berhasil'
+        : status === 'Failed'
+        ? 'Pembayaran Tidak Berhasil'
+        : status === 'Pending'
+        ? 'Menunggu Konfirmasi Admin'
+        : status;
+
+    addToast(
+      `Status pembayaran order ${orderId} diubah menjadi "${statusLabel}".`,
+      status === 'Paid' ? 'success' : status === 'Failed' ? 'error' : 'info'
+    );
+
+    recordActivity(
+      'transaction_updated',
+      `Verifikasi Transaksi (${statusLabel})`,
+      `Admin memperbarui status Order ${orderId} menjadi "${statusLabel}"`
+    );
   };
 
   // Staff Management

@@ -68,7 +68,7 @@ export default function CreateTicketPage() {
   };
 
   // Submit Handler
-  const handleSubmit = (status: 'Active' | 'Draft') => {
+  const handleSubmit = (status: 'Active' = 'Active') => {
     if (!name.trim()) {
       addToast('Harap isi Nama Tiket.', 'error');
       return;
@@ -124,21 +124,14 @@ export default function CreateTicketPage() {
           <button
             type="button"
             onClick={() => router.push('/admin/tickets')}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
           >
             Batal
           </button>
           <button
             type="button"
-            onClick={() => handleSubmit('Draft')}
-            className="px-4 py-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
-          >
-            Simpan Draft
-          </button>
-          <button
-            type="button"
             onClick={() => handleSubmit('Active')}
-            className="px-5 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors"
+            className="px-5 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             Publikasikan Tiket
           </button>

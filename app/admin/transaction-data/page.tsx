@@ -2,29 +2,53 @@
 
 import React, { useState, useMemo } from 'react';
 import { useHCEApp } from '@/context/HCEAppContext';
-import { Transaction } from '@/types/hce';
+import { Transaction, Participant } from '@/types/hce';
+import { StatCard } from '@/components/ui/StatCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { SearchInput } from '@/components/ui/FormControls';
+import { SearchInput, FilterSelect } from '@/components/ui/FormControls';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   FileSpreadsheet,
+  Users,
+  UserCheck,
+  UserX,
+  TrendingUp,
+  Download,
   Edit3,
   Trash2,
   AlertTriangle,
   Lock,
   ShieldAlert,
-  ArrowRight,
+  Phone,
+  Mail,
+  GraduationCap,
+  Ticket as TicketIcon,
   CheckCircle2,
+  Clock,
+  XCircle,
 } from 'lucide-react';
 
 export default function MasterDataPage() {
-  const { transactions, participants, tickets, updateParticipantAndTransaction, deleteParticipant } = useHCEApp();
+  const {
+    transactions,
+    participants,
+    tickets,
+    stats,
+    updateParticipantAndTransaction,
+    deleteParticipant,
+    exportParticipantsCSV,
+  } = useHCEApp();
 
+  // Search and Filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTxForEdit, setSelectedTxForEdit] = useState<Transaction | null>(null);
+  const [ticketFilter, setTicketFilter] = useState<string>('ALL');
+  const [facultyFilter, setFacultyFilter] = useState<string>('ALL');
+  const [checkInFilter, setCheckInFilter] = useState<string>('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<string>('ALL');
 
-  // Edit Form State
+  // Edit State
+  const [selectedTxForEdit, setSelectedTxForEdit] = useState<Transaction | null>(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
     nim: '',
@@ -34,8 +58,6 @@ export default function MasterDataPage() {
     prodi: '',
     ticketId: '',
   });
-
-  // Edit Confirmation Modal State
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
 
   // 2-Step Verification Delete State
@@ -46,10 +68,51 @@ export default function MasterDataPage() {
 
   // Map participant data for fast lookup by orderId
   const participantMap = useMemo(() => {
-    const map = new Map<string, (typeof participants)[0]>();
+    const map = new Map<string, Participant>();
     participants.forEach((p) => map.set(p.orderId, p));
     return map;
   }, [participants]);
+
+  // Dynamic filter options
+  const uniqueTickets = useMemo(() => {
+    const set = new Set<string>();
+    participants.forEach((p) => {
+      if (p.ticketName) set.add(p.ticketName);
+    });
+    return Array.from(set).map((name) => ({ value: name, label: name }));
+  }, [participants]);
+
+  const uniqueFaculties = useMemo(() => {
+    const set = new Set<string>();
+    participants.forEach((p) => {
+      if (p.faculty) set.add(p.faculty);
+    });
+    return Array.from(set).map((f) => ({ value: f, label: f }));
+  }, [participants]);
+
+  // Filtered List
+  const filteredList = useMemo(() => {
+    return transactions.filter((tx) => {
+      const p = participantMap.get(tx.orderId);
+
+      const matchSearch =
+        tx.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.nim.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tx.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p?.whatsapp && p.whatsapp.includes(searchQuery)) ||
+        (p?.faculty && p.faculty.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (p?.prodi && p.prodi.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        tx.ticketName.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchTicket = ticketFilter === 'ALL' || tx.ticketName === ticketFilter;
+      const matchFaculty = facultyFilter === 'ALL' || (p?.faculty && p.faculty === facultyFilter);
+      const matchCheckIn = checkInFilter === 'ALL' || tx.checkInStatus === checkInFilter;
+      const matchPayment = paymentFilter === 'ALL' || tx.paymentStatus === paymentFilter;
+
+      return matchSearch && matchTicket && matchFaculty && matchCheckIn && matchPayment;
+    });
+  }, [transactions, searchQuery, ticketFilter, facultyFilter, checkInFilter, paymentFilter, participantMap]);
 
   // Open Edit Modal & Populate Form
   const handleOpenEdit = (tx: Transaction) => {
@@ -112,62 +175,121 @@ export default function MasterDataPage() {
     handleCloseDelete();
   };
 
-  // Filtered List (Limit 50 data)
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((tx) => {
-      const p = participantMap.get(tx.orderId);
-      return (
-        tx.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.nim.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p?.whatsapp && p.whatsapp.includes(searchQuery)) ||
-        (p?.faculty && p.faculty.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p?.prodi && p.prodi.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }).slice(0, 50);
-  }, [transactions, searchQuery, participantMap]);
+  const handleResetFilter = () => {
+    setSearchQuery('');
+    setTicketFilter('ALL');
+    setFacultyFilter('ALL');
+    setCheckInFilter('ALL');
+    setPaymentFilter('ALL');
+  };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-16">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-[#102A43] tracking-tight">
-          Master Data
-        </h1>
-        <p className="text-xs lg:text-sm text-slate-500 mt-1">
-          Pusat pengelolaan dan koreksi master data identitas peserta event HCE 2026.
-        </p>
-      </div>
-
-      {/* Warning / Note Banner */}
-      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-900">
-          <p className="font-bold">Ketentuan Integritas Master Data:</p>
-          <p className="mt-0.5 text-amber-800/90 leading-relaxed">
-            Order ID dan Tanggal Transaksi bersifat immutable (terkunci). Anda dapat mengedit identitas peserta
-            atau menghapus data melalui verifikasi keamanan 2 langkah.
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[#102A43] tracking-tight flex items-center gap-2.5">
+            <FileSpreadsheet className="w-7 h-7 text-[#1A5E61]" />
+            Master Data & Participants
+          </h1>
+          <p className="text-xs lg:text-sm text-slate-500 mt-1">
+            Pusat pengelolaan data master identitas peserta, kategori tiket, status check-in, dan export data event HCE.
           </p>
         </div>
+
+        <button
+          onClick={exportParticipantsCSV}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </button>
       </div>
 
-      {/* Search Input */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+      {/* Summary StatCards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Participant"
+          value={stats.totalParticipants}
+          icon={Users}
+          colorScheme="navy"
+        />
+        <StatCard
+          label="Checked In"
+          value={stats.totalCheckedIn}
+          icon={UserCheck}
+          colorScheme="emerald"
+        />
+        <StatCard
+          label="Not Checked In"
+          value={stats.totalNotCheckedIn}
+          icon={UserX}
+          colorScheme="amber"
+        />
+        <StatCard
+          label="Attendance Rate"
+          value={`${stats.attendancePercentage}%`}
+          icon={TrendingUp}
+          colorScheme="teal"
+        />
+      </div>
+
+      {/* Filters Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
         <SearchInput
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Cari Master Data (Nama, NIM, Nomor Telp, Email, Fakultas, Prodi)..."
+          placeholder="Cari Master Data (Nama, NIM, WhatsApp, Email, Order ID, Fakultas, Prodi)..."
         />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <FilterSelect
+            value={ticketFilter}
+            onChange={(e) => setTicketFilter(e.target.value)}
+            options={[{ value: 'ALL', label: 'Semua Tiket' }, ...uniqueTickets]}
+          />
+
+          <FilterSelect
+            value={facultyFilter}
+            onChange={(e) => setFacultyFilter(e.target.value)}
+            options={[{ value: 'ALL', label: 'Semua Fakultas' }, ...uniqueFaculties]}
+          />
+
+          <FilterSelect
+            value={checkInFilter}
+            onChange={(e) => setCheckInFilter(e.target.value)}
+            options={[
+              { value: 'ALL', label: 'Semua Status Check-In' },
+              { value: 'Checked In', label: 'Checked In' },
+              { value: 'Not Checked In', label: 'Not Checked In' },
+            ]}
+          />
+
+          <FilterSelect
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            options={[
+              { value: 'ALL', label: 'Semua Status Bayar' },
+              { value: 'Paid', label: 'Pembayaran Berhasil (Paid)' },
+              { value: 'Pending', label: 'Menunggu Konfirmasi (Pending)' },
+              { value: 'Failed', label: 'Pembayaran Gagal (Failed)' },
+              { value: 'Refunded', label: 'Refunded' },
+            ]}
+          />
+        </div>
       </div>
 
       {/* Table of Master Data */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {filteredTransactions.length === 0 ? (
+        {filteredList.length === 0 ? (
           <EmptyState
             title="Master Data tidak ditemukan"
-            description="Tidak ada data yang cocok dengan kata kunci pencarian Anda."
+            description="Tidak ada data peserta yang cocok dengan kriteria pencarian dan filter saat ini."
             icon={FileSpreadsheet}
+            action={{
+              label: 'Reset Filter',
+              onClick: handleResetFilter,
+            }}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -175,45 +297,103 @@ export default function MasterDataPage() {
               <thead className="bg-slate-50/90 text-[11px] font-bold uppercase text-slate-500 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-4 text-center">NO</th>
-                  <th className="px-5 py-4">NAMA LENGKAP</th>
+                  <th className="px-5 py-4">PESERTA & ORDER</th>
                   <th className="px-4 py-4">NIM</th>
-                  <th className="px-4 py-4">NOMOR TELP</th>
-                  <th className="px-4 py-4">EMAIL</th>
-                  <th className="px-4 py-4">FAKULTAS</th>
-                  <th className="px-4 py-4">PRODI</th>
+                  <th className="px-4 py-4">KONTAK</th>
+                  <th className="px-4 py-4">FAKULTAS / PRODI</th>
+                  <th className="px-4 py-4">TIKET</th>
+                  <th className="px-3 py-4 text-center">STATUS CHECK-IN</th>
+                  <th className="px-3 py-4 text-center">STATUS BAYAR</th>
                   <th className="px-5 py-4 text-right">AKSI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTransactions.map((tx, idx) => {
+                {filteredList.map((tx, idx) => {
                   const p = participantMap.get(tx.orderId);
                   return (
                     <tr key={tx.orderId} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-4 py-4 text-center font-mono text-slate-400 font-bold">{idx + 1}</td>
                       <td className="px-5 py-4">
                         <div className="font-bold text-slate-900 text-sm">{tx.participantName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">Order: {tx.orderId}</div>
+                        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+                          <span>Order: {tx.orderId}</span>
+                          <span>•</span>
+                          <span>{tx.orderDate.split(' ')[0]}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-4 font-mono font-bold text-slate-800">{tx.nim}</td>
-                      <td className="px-4 py-4 font-mono text-slate-700">
-                        {p?.whatsapp || '-'}
+                      <td className="px-4 py-4 space-y-1">
+                        <div className="text-slate-700 truncate max-w-44 flex items-center gap-1 text-[11px]">
+                          <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>{tx.email}</span>
+                        </div>
+                        {p?.whatsapp && (
+                          <div className="text-slate-600 font-mono text-[11px] flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                            <a
+                              href={`https://wa.me/${p.whatsapp.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[#1A5E61] hover:underline"
+                            >
+                              {p.whatsapp}
+                            </a>
+                          </div>
+                        )}
                       </td>
-                      <td className="px-4 py-4 text-slate-700 truncate max-w-44">
-                        {tx.email}
+                      <td className="px-4 py-4">
+                        <div className="font-medium text-slate-800 flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>{p?.faculty || '-'}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 pl-4">{p?.prodi || '-'}</div>
                       </td>
-                      <td className="px-4 py-4 font-medium text-slate-800">
-                        {p?.faculty || '-'}
+                      <td className="px-4 py-4">
+                        <div className="font-semibold text-[#1A5E61] flex items-center gap-1">
+                          <TicketIcon className="w-3 h-3 shrink-0" />
+                          <span>{tx.ticketName}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          Rp {tx.amount.toLocaleString('id-ID')} ({tx.ticketType})
+                        </div>
                       </td>
-                      <td className="px-4 py-4 text-slate-600">
-                        {p?.prodi || '-'}
+                      <td className="px-3 py-4 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <StatusBadge status={tx.checkInStatus} size="sm" />
+                          {p?.checkInTime && (
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {p.checkInTime}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        {tx.paymentStatus === 'Paid' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Pembayaran Berhasil
+                          </span>
+                        ) : tx.paymentStatus === 'Pending' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Clock className="w-3 h-3 animate-pulse" />
+                            Menunggu Konfirmasi
+                          </span>
+                        ) : tx.paymentStatus === 'Failed' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <XCircle className="w-3 h-3" />
+                            Pembayaran Gagal
+                          </span>
+                        ) : (
+                          <StatusBadge status={tx.paymentStatus} size="sm" />
+                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* Tombol Edit */}
                           <button
                             onClick={() => handleOpenEdit(tx)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#1A5E61]/10 hover:bg-[#1A5E61]/20 text-[#1A5E61] font-semibold rounded-lg text-xs transition-colors"
-                            title="Edit Master Data"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#1A5E61]/10 hover:bg-[#1A5E61]/20 text-[#1A5E61] font-semibold rounded-lg text-xs transition-colors cursor-pointer"
+                            title="Edit Data Peserta"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit</span>
@@ -222,7 +402,7 @@ export default function MasterDataPage() {
                           {/* Tombol Hapus 2-Step */}
                           <button
                             onClick={() => handleOpenDelete(tx)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-lg text-xs transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
                             title="Hapus Master Data (2-Langkah)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -244,8 +424,8 @@ export default function MasterDataPage() {
         <Modal
           isOpen={!!selectedTxForEdit}
           onClose={() => setSelectedTxForEdit(null)}
-          title={`Koreksi Master Data: ${selectedTxForEdit.orderId}`}
-          subtitle="Ubah informasi nama, nim, kontak, fakultas, atau prodi peserta."
+          title={`Koreksi Data Peserta: ${selectedTxForEdit.orderId}`}
+          subtitle="Ubah informasi identitas nama, kontak, fakultas, prodi, atau tiket peserta."
           maxWidth="2xl"
         >
           <form onSubmit={handleSaveFormSubmit} className="space-y-4">
@@ -307,11 +487,12 @@ export default function MasterDataPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Telepon / WhatsApp</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Nomor WhatsApp *</label>
                 <input
                   type="text"
                   value={editFormData.whatsapp}
                   onChange={(e) => setEditFormData({ ...editFormData, whatsapp: e.target.value })}
+                  placeholder="08123456789"
                   className="w-full px-3 py-2 text-xs border rounded-xl font-mono"
                 />
               </div>
@@ -356,15 +537,15 @@ export default function MasterDataPage() {
               <button
                 type="button"
                 onClick={() => setSelectedTxForEdit(null)}
-                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                Simpan Perubahan Master Data
+                Simpan Perubahan
               </button>
             </div>
           </form>
@@ -376,8 +557,8 @@ export default function MasterDataPage() {
         <Modal
           isOpen={showEditConfirmModal}
           onClose={() => setShowEditConfirmModal(false)}
-          title="Konfirmasi Perubahan Master Data"
-          subtitle="Pastikan perubahan data identitas peserta telah sesuai."
+          title="Konfirmasi Perubahan Data Peserta"
+          subtitle="Pastikan perubahan identitas dan tiket telah sesuai."
         >
           <div className="space-y-4 text-xs">
             <p className="text-slate-600">
@@ -389,14 +570,14 @@ export default function MasterDataPage() {
               <button
                 type="button"
                 onClick={() => setShowEditConfirmModal(false)}
-                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={executeUpdate}
-                className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#1A5E61] hover:bg-[#134648] rounded-xl cursor-pointer"
               >
                 Ya, Simpan Perubahan
               </button>
@@ -410,7 +591,7 @@ export default function MasterDataPage() {
         <Modal
           isOpen={!!txToDelete}
           onClose={handleCloseDelete}
-          title={deleteStep === 1 ? "Verifikasi Langkah 1: Hapus Master Data" : "Verifikasi Langkah 2: Konfirmasi Final"}
+          title={deleteStep === 1 ? "Verifikasi Langkah 1: Hapus Data Peserta" : "Verifikasi Langkah 2: Konfirmasi Final"}
           subtitle={`Order ID: ${txToDelete.orderId}`}
         >
           <div className="space-y-4 text-xs">
@@ -421,7 +602,7 @@ export default function MasterDataPage() {
                   <div>
                     <h4 className="font-bold">Peringatan Penghapusan Data Peserta</h4>
                     <p className="text-[11px] text-rose-800 mt-1 leading-relaxed">
-                      Anda akan menghapus data master untuk <strong>{txToDelete.participantName}</strong> (NIM: {txToDelete.nim}).
+                      Anda akan menghapus data untuk <strong>{txToDelete.participantName}</strong> (NIM: {txToDelete.nim}).
                       Penghapusan ini akan membatalkan tiket dan menghapus riwayat kehadiran terkait.
                     </p>
                   </div>
@@ -438,7 +619,7 @@ export default function MasterDataPage() {
                   <button
                     type="button"
                     onClick={handleCloseDelete}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
                     Batal
                   </button>
@@ -448,32 +629,16 @@ export default function MasterDataPage() {
                     className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <span>Lanjut ke Verifikasi Final (Langkah 2)</span>
-                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <div className="p-4 bg-rose-100 border border-rose-300 rounded-2xl space-y-2 text-rose-900">
-                  <div className="flex items-center gap-2 font-bold text-rose-800">
-                    <ShieldAlert className="w-4 h-4 text-rose-600" />
-                    <span>Langkah 2: Konfirmasi Kata Sandi Keamanan</span>
-                  </div>
-                  <p className="text-[11px] text-rose-800 leading-relaxed">
-                    Untuk mencegah kesalahan tidak disengaja, silakan ketik teks verifikasi <strong className="font-mono bg-white px-1.5 py-0.5 rounded text-rose-900 border border-rose-300">HAPUS PERMANEN</strong> di bawah ini:
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 space-y-2">
+                  <p className="font-bold text-xs">Konfirmasi Tindakan Berisiko Tinggi</p>
+                  <p className="text-[11px] text-rose-800">
+                    Ketik kata kunci <strong className="font-mono bg-rose-200/80 px-1 py-0.5 rounded text-rose-950">HAPUS PERMANEN</strong> di bawah ini untuk mengonfirmasi:
                   </p>
-                </div>
-
-                {deleteError && (
-                  <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] rounded-xl font-medium">
-                    {deleteError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Ketik Konfirmasi Teks:
-                  </label>
                   <input
                     type="text"
                     value={confirmationInput}
@@ -481,27 +646,33 @@ export default function MasterDataPage() {
                       setConfirmationInput(e.target.value);
                       setDeleteError('');
                     }}
-                    placeholder="HAPUS PERMANEN"
-                    className="w-full px-3.5 py-2.5 text-xs border-2 border-rose-300 focus:border-rose-600 rounded-xl font-mono uppercase font-bold text-rose-900 tracking-wider"
+                    placeholder="Ketik: HAPUS PERMANEN"
+                    className="w-full px-3 py-2 text-xs border border-rose-300 rounded-xl bg-white font-mono uppercase focus:ring-2 focus:ring-rose-500 focus:outline-hidden"
                   />
+                  {deleteError && (
+                    <p className="text-[11px] font-semibold text-rose-600">{deleteError}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setDeleteStep(1)}
-                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+                    className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
                   >
-                    &larr; Kembali ke Langkah 1
+                    Kembali ke Langkah 1
                   </button>
                   <button
                     type="button"
                     onClick={executeDeleteFinal}
                     disabled={confirmationInput.trim() !== 'HAPUS PERMANEN'}
-                    className="px-4 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer"
+                    className={`px-4 py-2 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 ${
+                      confirmationInput.trim() === 'HAPUS PERMANEN'
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Hapus Permanen Sekarang</span>
+                    <span>Konfirmasi Hapus Permanen</span>
                   </button>
                 </div>
               </>

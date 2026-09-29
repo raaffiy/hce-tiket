@@ -38,6 +38,11 @@ import {
   BookOpen,
   Layers,
   Loader2,
+  Upload,
+  ImageIcon,
+  Trash2,
+  Plus,
+  Minus,
   X,
 } from "lucide-react";
 import {
@@ -88,10 +93,12 @@ export default function SinglePageSeminar() {
   const [faculty, setFaculty] = useState<string>(FACULTIES[0]);
   const [studyProgram, setStudyProgram] = useState("");
   const [selectedPayment, setSelectedPayment] = useState<string>("qris");
+  const [paymentProofFile, setPaymentProofFile] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeOrder, setActiveOrder] = useState<SeminarOrder | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Lookup / Search Ticket State
   const [searchTicketQuery, setSearchTicketQuery] = useState("");
@@ -111,14 +118,17 @@ export default function SinglePageSeminar() {
     if (category) {
       setSelectedCategory(category);
     }
+    setQuantity(1);
     setCheckoutStep(1);
     setErrorMessage(null);
+    setShowConfirmModal(false);
     setIsOrderModalOpen(true);
     setIsLookupModalOpen(false);
   };
 
   // Close Order Modal handler
   const handleCloseOrderModal = () => {
+    setShowConfirmModal(false);
     setIsOrderModalOpen(false);
   };
 
@@ -207,7 +217,7 @@ export default function SinglePageSeminar() {
     handleOpenOrderModal(cat);
   };
 
-  // Submit step 1: Proceed to simulated payment
+  // Submit step 1: Proceed to upload payment proof step
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -227,10 +237,11 @@ export default function SinglePageSeminar() {
       return;
     }
 
+    const ticketQty = Math.max(1, quantity || 1);
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const orderId = `ORD-2026-${randomNum}`;
     const ticketCode = `SEM-2026-${randomNum}`;
-    const subtotal = selectedCategory.price;
+    const subtotal = selectedCategory.price * ticketQty;
 
     const newOrder: SeminarOrder = {
       orderId,
@@ -238,10 +249,9 @@ export default function SinglePageSeminar() {
       ticketCategoryId: selectedCategory.id,
       ticketCategoryName: selectedCategory.name,
       ticketPrice: selectedCategory.price,
-      quantity: 1,
+      quantity: ticketQty,
       totalPrice: subtotal,
-      paymentMethod:
-        PAYMENT_METHODS.find((p) => p.id === selectedPayment)?.name || "QRIS Instant",
+      paymentMethod: "QRIS Official (Scan QR)",
       paymentStatus: "Menunggu Pembayaran",
       ticketStatus: "Tiket Belum Dibayar",
       createdAt: new Date().toISOString(),
@@ -256,26 +266,67 @@ export default function SinglePageSeminar() {
     };
 
     setActiveOrder(newOrder);
+    setPaymentProofFile(null);
     setCheckoutStep(2);
   };
 
-  // Simulate payment confirmation
-  const handleSimulatePaymentSuccess = () => {
+  // Upload proof file reader
+  const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPaymentProofFile(event.target?.result as string);
+        setErrorMessage(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUseSampleProof = () => {
+    setPaymentProofFile("/scanqr.jpeg");
+    setErrorMessage(null);
+  };
+
+  const handleRemoveProof = () => {
+    setPaymentProofFile(null);
+  };
+
+  // Step 2: Open confirmation popup when clicking "Buat Pesanan"
+  const handleOpenConfirmModal = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!activeOrder) return;
+
+    if (!paymentProofFile) {
+      setErrorMessage("Wajib mengunggah foto / screenshot bukti transaksi sebelum melanjutkan!");
+      return;
+    }
+
+    setErrorMessage(null);
+    setShowConfirmModal(true);
+  };
+
+  // Confirm and proceed to create order & upload proof
+  const handleConfirmAndSubmitOrder = () => {
+    if (!activeOrder || !paymentProofFile) return;
+
+    setShowConfirmModal(false);
     setIsProcessing(true);
+    setErrorMessage(null);
 
     setTimeout(() => {
       const finalizedOrder: SeminarOrder = {
         ...activeOrder,
-        paymentStatus: "Pembayaran Berhasil",
-        ticketStatus: "Tiket Aktif",
+        paymentProof: paymentProofFile,
+        paymentStatus: "Menunggu Konfirmasi Admin",
+        ticketStatus: "Menunggu Konfirmasi",
       };
 
       saveNewOrder(finalizedOrder);
       setActiveOrder(finalizedOrder);
       setIsProcessing(false);
       setCheckoutStep(3);
-    }, 1000);
+    }, 900);
   };
 
   // Copy ticket code helper
@@ -283,6 +334,337 @@ export default function SinglePageSeminar() {
     navigator.clipboard.writeText(code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  // Dedicated Print E-Ticket PDF Helper
+  const handlePrintTicket = (ticket: SeminarOrder) => {
+    const printWindow = window.open("", "_blank", "width=850,height=900");
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    const isPaid = ticket.paymentStatus === "Pembayaran Berhasil" || ticket.paymentStatus === "Paid";
+    const statusBg = isPaid ? "#dcfce7" : "#e0f2fe";
+    const statusColor = isPaid ? "#166534" : "#0369a1";
+    const statusBorder = isPaid ? "#86efac" : "#7dd3fc";
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <title>E-Ticket_${ticket.ticketCode}_${ticket.customer.fullName.replace(/\\s+/g, '_')}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #102a43;
+            padding: 30px 20px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          .ticket-card {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            border: 2px solid #cbd5e1;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+          }
+          .header {
+            background-color: #102a43;
+            color: #ffffff;
+            padding: 24px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #e05a1f;
+          }
+          .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+          }
+          .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: #ffffff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #102a43;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+          }
+          .title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            letter-spacing: 1.5px;
+            line-height: 1;
+          }
+          .subtitle {
+            font-size: 10px;
+            color: #e05a1f;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+          }
+          .status {
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: ${statusBg};
+            color: ${statusColor};
+            border: 1.5px solid ${statusBorder};
+          }
+          .body {
+            padding: 26px 28px;
+          }
+          .event-banner {
+            background: #fff8f0;
+            border: 1.5px dashed #f97316;
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 22px;
+          }
+          .event-theme {
+            font-size: 15px;
+            font-weight: 800;
+            color: #102a43;
+            line-height: 1.35;
+          }
+          .speaker-line {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 5px;
+          }
+          .speaker-line strong {
+            color: #102a43;
+          }
+          .grid-details {
+            display: grid;
+            grid-template-columns: 1.25fr 1.15fr 0.9fr;
+            gap: 18px;
+            padding-bottom: 20px;
+            border-bottom: 2px dashed #e2e8f0;
+          }
+          .section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            font-weight: 800;
+            margin-bottom: 6px;
+          }
+          .info-val {
+            font-size: 13px;
+            font-weight: 800;
+            color: #102a43;
+            line-height: 1.4;
+          }
+          .info-sub {
+            font-size: 11.5px;
+            color: #64748b;
+            line-height: 1.4;
+          }
+          .qr-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-svg {
+            width: 58px;
+            height: 58px;
+            color: #102a43;
+            margin-bottom: 6px;
+          }
+          .code-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+          }
+          .code-val {
+            font-family: monospace;
+            font-weight: 900;
+            color: #1a5e61;
+            font-size: 13px;
+          }
+          .order-sub {
+            font-size: 9.5px;
+            color: #94a3b8;
+            margin-top: 2px;
+          }
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 0;
+            border-bottom: 2px dashed #e2e8f0;
+          }
+          .total-amount {
+            font-size: 18px;
+            font-weight: 900;
+            color: #e05a1f;
+            font-family: monospace;
+          }
+          .rules-box {
+            margin-top: 18px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.5;
+          }
+          .rules-box strong {
+            color: #102a43;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 11.5px;
+          }
+          .rules-box ol {
+            margin-left: 16px;
+          }
+          .footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 12px 28px;
+            text-align: center;
+            font-size: 10.5px;
+            color: #94a3b8;
+            font-weight: 600;
+          }
+          @media print {
+            body { padding: 0; background: #ffffff; }
+            .ticket-card { box-shadow: none; border: 2px solid #102a43; border-radius: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket-card">
+          <div class="header">
+            <div class="logo-group">
+              <div class="logo-icon">HCE</div>
+              <div>
+                <div class="subtitle">OFFICIAL SEMINAR PASS</div>
+                <div class="title">HIPMI COLLAB EXPO 2026</div>
+              </div>
+            </div>
+            <div class="status">
+              ${ticket.paymentStatus || 'Menunggu Konfirmasi Admin'}
+            </div>
+          </div>
+
+          <div class="body">
+            <div class="event-banner">
+              <div class="event-theme">&ldquo;${SEMINAR_INFO.theme}&rdquo;</div>
+              <div class="speaker-line">Keynote Speaker: <strong>${SPEAKER_INFO.name}</strong> &bull; ${SPEAKER_INFO.title}</div>
+            </div>
+
+            <div class="grid-details">
+              <div>
+                <div class="section-title">Data Peserta</div>
+                <div class="info-val">${ticket.customer.fullName}</div>
+                <div class="info-sub">NIM: <strong>${ticket.customer.nim}</strong></div>
+                <div class="info-sub">${ticket.customer.studyProgram}</div>
+                <div class="info-sub">${ticket.customer.faculty}</div>
+                <div class="info-sub">${ticket.customer.email}</div>
+                <div class="info-sub">WA: ${ticket.customer.phone}</div>
+              </div>
+
+              <div>
+                <div class="section-title">Waktu &amp; Lokasi</div>
+                <div class="info-val">${SEMINAR_INFO.date}</div>
+                <div class="info-sub">Pukul: <strong>${SEMINAR_INFO.time}</strong></div>
+                <div class="info-val" style="margin-top: 4px; font-size: 12px;">${SEMINAR_INFO.venue}</div>
+                <div class="info-sub">${SEMINAR_INFO.organizer}</div>
+              </div>
+
+              <div class="qr-box">
+                <svg class="qr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="5" height="5" x="3" y="3" rx="1"/>
+                  <rect width="5" height="5" x="16" y="3" rx="1"/>
+                  <rect width="5" height="5" x="3" y="16" rx="1"/>
+                  <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+                  <path d="M21 21v.01"/>
+                  <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+                  <path d="M3 12h.01"/>
+                  <path d="M12 3h.01"/>
+                  <path d="M12 16v.01"/>
+                  <path d="M16 12h1"/>
+                  <path d="M21 12v.01"/>
+                  <path d="M12 21v-1"/>
+                </svg>
+                <div class="code-label">QR CHECK-IN</div>
+                <div class="code-val">${ticket.ticketCode}</div>
+                <div class="order-sub">Order: ${ticket.orderId}</div>
+              </div>
+            </div>
+
+            <div class="summary-row">
+              <div>
+                <div class="section-title">Paket Seminar</div>
+                <div style="font-size: 14px; font-weight: 800; color: #102a43;">${ticket.quantity}x Tiket (${ticket.ticketCategoryName})</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="section-title">Total Pembayaran</div>
+                <div class="total-amount">${formatRupiah(ticket.totalPrice)}</div>
+              </div>
+            </div>
+
+            <div class="rules-box">
+              <strong>Ketentuan &amp; Informasi Check-In:</strong>
+              <ol>
+                <li>Tunjukkan dokumen E-Ticket resmi ini (cetak atau digital) beserta identitas diri saat registrasi ulang.</li>
+                <li>QR Code Check-in hanya berlaku untuk 1 kali pemindaian masuk gate seminar.</li>
+                <li>Pintu masuk seminar dibuka 45 menit sebelum acara dimulai. Harap hadir tepat waktu.</li>
+                <li>Bila ada kendala verifikasi, silakan hubungi Customer Service Panitia HCE 2026.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="footer">
+            &copy; 2026 HIPMI PT Telkom University &bull; Himpunan Pengusaha Muda Indonesia &bull; Dokumen Resmi Elektronik
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // Lookup ticket helper
@@ -868,7 +1250,7 @@ export default function SinglePageSeminar() {
           />
 
           {/* Modal Container */}
-          <div className="bg-hce-cream border-2 border-slate-300 rounded-3xl p-5 sm:p-8 max-w-3xl w-full my-auto shadow-2xl relative z-10 max-h-[92vh] overflow-y-auto">
+          <div className="bg-hce-cream border-2 border-slate-300 rounded-3xl p-5 sm:p-8 max-w-3xl lg:max-w-4xl w-full my-auto shadow-2xl relative z-10 max-h-[92vh] overflow-y-auto">
 
             {/* Modal Header & Close Button */}
             <div className="flex items-center justify-between pb-4 border-b border-hce-teal/15 mb-6">
@@ -926,10 +1308,15 @@ export default function SinglePageSeminar() {
                 <form onSubmit={handleProceedToPayment} className="space-y-5">
 
                   {/* 1. Category Selection in Form */}
-                  <div className="bg-[#FFFDE7] p-5 sm:p-6 rounded-2xl border-2 border-slate-300 shadow-sm space-y-3">
-                    <h4 className="text-base sm:text-lg font-black text-hce-navy uppercase tracking-wider" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                      1. Pilih Kategori
-                    </h4>
+                  <div className="bg-[#FFFDE7] p-5 sm:p-6 rounded-2xl border-2 border-slate-300 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-base sm:text-lg font-black text-hce-navy uppercase tracking-wider" style={{ fontFamily: "var(--font-bebas-neue)" }}>
+                        1. Pilih Kategori &amp; Jumlah Tiket
+                      </h4>
+                      <span className="text-[11px] text-hce-teal font-bold bg-white px-2.5 py-0.5 rounded-md border border-hce-teal/20">
+                        {selectedCategory.name}
+                      </span>
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       {TICKET_CATEGORIES.map((cat) => {
@@ -949,10 +1336,52 @@ export default function SinglePageSeminar() {
                                 {isSelected && <Check className="w-3.5 h-3.5 text-hce-teal font-bold" />}
                               </div>
                               <span className="text-base font-black text-hce-teal">{formatRupiah(cat.price)}</span>
+                              <span className="text-[10px] text-slate-400 block mt-0.5">/ tiket</span>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Quantity Selector (Pilih Lebih Dari 1 Tiket) */}
+                    <div className="p-4 bg-white rounded-xl border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div>
+                        <span className="text-xs font-bold text-hce-navy block">Jumlah Tiket:</span>
+                        <span className="text-[11px] text-slate-500">Pilih kuantiti tiket yang ingin dipesan (Maksimal 10 tiket)</span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                          <button
+                            type="button"
+                            onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                            disabled={quantity <= 1}
+                            className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 transition-colors cursor-pointer"
+                            aria-label="Kurangi jumlah tiket"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-12 text-center text-sm font-black font-mono text-hce-navy bg-white py-1.5 border-x border-slate-200">
+                            {quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setQuantity((prev) => Math.min(10, prev + 1))}
+                            disabled={quantity >= 10}
+                            className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 transition-colors cursor-pointer"
+                            aria-label="Tambah jumlah tiket"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] text-slate-400 block font-medium">Subtotal Tiket:</span>
+                          <span className="text-sm font-extrabold text-hce-teal font-mono">
+                            {formatRupiah(selectedCategory.price * quantity)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Benefit Termasuk */}
@@ -975,7 +1404,7 @@ export default function SinglePageSeminar() {
                   <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="text-base sm:text-lg font-black text-hce-navy uppercase tracking-wider" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                        2. Data Identitas Peserta
+                        2. Data Identitas Pemesan
                       </h4>
                       <span className="text-[11px] text-hce-teal font-bold bg-[#EAF3F3] px-2.5 py-0.5 rounded-md">
                         Wajib Diisi Lengkap
@@ -1085,41 +1514,14 @@ export default function SinglePageSeminar() {
                     </div>
                   </div>
 
-                  {/* 3. Payment Method Selector */}
-                  <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-3">
-                    <h4 className="text-base sm:text-lg font-black text-hce-navy uppercase tracking-wider" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                      3. Metode Pembayaran
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      {PAYMENT_METHODS.map((pm) => (
-                        <div
-                          key={pm.id}
-                          onClick={() => setSelectedPayment(pm.id)}
-                          className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${selectedPayment === pm.id
-                              ? "border-hce-teal bg-[#E8F4F4]"
-                              : "border-slate-200 bg-slate-50/50 hover:bg-white"
-                            }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-bold text-hce-navy">{pm.name}</span>
-                            {selectedPayment === pm.id && <Check className="w-3 h-3 text-hce-teal" />}
-                          </div>
-                          {pm.badge && (
-                            <span className="text-[10px] text-emerald-700 bg-emerald-100 font-bold px-2 py-0.5 rounded-md w-fit">
-                              {pm.badge}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Submit Button Bar */}
                   <div className="p-5 rounded-2xl bg-hce-navy text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
-                      <span className="text-xs text-slate-300 font-medium block">Total Pembayaran:</span>
+                      <span className="text-xs text-slate-300 font-medium block">
+                        Total Pembayaran ({quantity} Tiket):
+                      </span>
                       <span className="text-2xl sm:text-3xl font-black text-hce-orange" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                        {formatRupiah(selectedCategory.price)}
+                        {formatRupiah(selectedCategory.price * quantity)}
                       </span>
                     </div>
 
@@ -1128,7 +1530,7 @@ export default function SinglePageSeminar() {
                       className="w-full sm:w-auto px-7 py-3.5 bg-hce-orange hover:bg-hce-orange/90 text-white rounded-xl text-base font-black uppercase tracking-wider shadow-lg shadow-hce-orange/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2 cursor-pointer"
                       style={{ fontFamily: "var(--font-bebas-neue)" }}
                     >
-                      <span>Lanjut ke Pembayaran</span>
+                      <span>Berikutnya</span>
                       <ArrowRight className="w-5 h-5" />
                     </button>
                   </div>
@@ -1142,81 +1544,220 @@ export default function SinglePageSeminar() {
                 </form>
               )}
 
-              {/* STEP 2: SIMULASI PEMBAYARAN */}
+              {/* STEP 2: TAMPILKAN QRIS & UPLOAD BUKTI TRANSACTION (SIDE-BY-SIDE) */}
               {checkoutStep === 2 && activeOrder && (
-                <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-xl space-y-5">
+                <form onSubmit={handleOpenConfirmModal} className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-xl space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
                     <div>
-                      <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest">Order ID</span>
+                      <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest">Order ID Dibuat</span>
                       <h4 className="text-base font-extrabold text-hce-navy">{activeOrder.orderId}</h4>
                     </div>
                     <div className="text-left sm:text-right">
-                      <span className="text-[10px] text-slate-500 font-medium block">Total Tagihan</span>
+                      <span className="text-[10px] text-slate-500 font-medium block">Total Nominal Transaction ({activeOrder.quantity} Tiket)</span>
                       <span className="text-xl font-black text-hce-orange">{formatRupiah(activeOrder.totalPrice)}</span>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-hce-teal/30 text-center space-y-2.5">
-                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full inline-block">
-                      Simulasi Gateway QRIS Instant
-                    </span>
-                    <div className="w-40 h-40 mx-auto bg-white p-2 rounded-2xl border shadow-inner flex items-center justify-center">
-                      <Image
-                        src="/scanqr.jpeg"
-                        alt="QRIS Mock Payment"
-                        width={150}
-                        height={150}
-                        className="w-full h-full object-contain rounded-lg"
-                      />
+                  {/* Grid 2 Kolom: QRIS di samping Upload Bukti (Tinggi & Tata Letak Seimbang) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+                    {/* Kolom Kiri: QRIS Resmi */}
+                    <div className="p-4 sm:p-5 bg-gradient-to-b from-slate-50 to-white rounded-2xl border-2 border-dashed border-hce-teal/40 flex flex-col justify-between text-center space-y-3">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-hce-teal bg-hce-teal/10 px-3 py-1 rounded-full inline-block">
+                          Scan QRIS untuk Pembayaran
+                        </span>
+                        <h5 className="text-xs font-black text-hce-navy">
+                          Total: <span className="text-hce-orange font-mono text-sm">{formatRupiah(activeOrder.totalPrice)}</span>
+                          {activeOrder.quantity > 1 && (
+                            <span className="text-[10px] text-slate-500 font-normal block">
+                              ({activeOrder.quantity} Tiket × {formatRupiah(activeOrder.ticketPrice)})
+                            </span>
+                          )}
+                        </h5>
+                      </div>
+
+                      {/* QRIS Image Container */}
+                      <div className="w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-white p-2.5 rounded-2xl border-2 border-slate-200 shadow-md flex items-center justify-center relative">
+                        <Image
+                          src="/scanqr.jpeg"
+                          alt="QRIS HCE 2026"
+                          width={208}
+                          height={208}
+                          priority
+                          className="w-full h-full object-contain rounded-xl"
+                        />
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 space-y-0.5">
+                        <p className="font-semibold text-hce-navy">
+                          BCA, Mandiri, BRI, BNI &amp; E-Wallet
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Pindai QR lalu unggah screenshot bukti pembayaran di samping.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-hce-navy/60">
-                      Klik tombol hijau di bawah untuk memverifikasi pembayaran simulasi secara instan.
-                    </p>
+
+                    {/* Kolom Kanan: Upload Box Bukti Transaksi */}
+                    <div className="p-4 sm:p-5 bg-gradient-to-b from-slate-50 to-white rounded-2xl border-2 border-dashed border-hce-teal/40 flex flex-col justify-between text-center space-y-3">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest text-hce-teal bg-hce-teal/10 px-3 py-1 rounded-full inline-flex items-center gap-1">
+                          <Upload className="w-3 h-3" />
+                          <span>Unggah Bukti Transaksi</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleUseSampleProof}
+                          className="text-[10px] font-bold text-hce-teal hover:underline cursor-pointer"
+                        >
+                          + Contoh Bukti (Demo)
+                        </button>
+                      </div>
+
+                      {paymentProofFile ? (
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-2 my-auto">
+                          <div className="w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-white p-2.5 rounded-2xl border-2 border-emerald-400 shadow-md flex items-center justify-center relative overflow-hidden group">
+                            <Image
+                              src={paymentProofFile}
+                              alt="Bukti Transfer Uploaded"
+                              fill
+                              className="object-contain p-2"
+                            />
+                          </div>
+
+                          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-emerald-100/90 text-emerald-800 rounded-full text-[11px] font-bold border border-emerald-300">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Bukti Siap Diunggah</span>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-2">
+                            <label className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold cursor-pointer transition-all shadow-2xs">
+                              Ganti Foto
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleProofFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleRemoveProof}
+                              className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex flex-col justify-center my-auto">
+                          <label className="w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-white hover:bg-slate-50/80 rounded-2xl border-2 border-dashed border-slate-300 hover:border-hce-teal flex flex-col items-center justify-center p-3 cursor-pointer transition-all shadow-xs group">
+                            <div className="w-10 h-10 rounded-full bg-hce-teal/10 text-hce-teal flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                              <Upload className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-bold text-hce-navy text-center leading-tight">
+                              Klik untuk upload bukti transfer
+                            </span>
+                            <span className="text-[10px] text-slate-400 mt-1">
+                              JPG, PNG, WEBP (Maks 5MB)
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleProofFileChange}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      <div className="text-[11px] text-slate-500 space-y-0.5">
+                        <p className="font-semibold text-hce-navy">
+                          Verifikasi Otomatis &amp; Akurat
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Pastikan nominal transfer &amp; bukti transaksi terbaca jelas.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
+                  {errorMessage && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 flex items-center space-x-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Tombol Kiri (Ubah Data Peserta) dan Kanan (Buat Pesanan) */}
+                  <div className="flex flex-row items-center gap-3 pt-2">
                     <button
                       type="button"
                       disabled={isProcessing}
-                      onClick={handleSimulatePaymentSuccess}
-                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-base font-black uppercase tracking-wider shadow-lg shadow-emerald-600/25 flex items-center justify-center space-x-2 transition-all cursor-pointer disabled:opacity-50"
+                      onClick={() => setCheckoutStep(1)}
+                      className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      &larr; <span>Ubah Data Peserta</span>
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isProcessing}
+                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-base sm:text-lg font-black uppercase tracking-wider shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                       style={{ fontFamily: "var(--font-bebas-neue)" }}
                     >
                       {isProcessing ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>Memverifikasi Pembayaran...</span>
+                          <span>Memproses...</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle2 className="w-5 h-5" />
-                          <span>Simulasikan Pembayaran Berhasil</span>
+                          <span>Buat Pesanan</span>
                         </>
                       )}
                     </button>
-
-                    <button
-                      type="button"
-                      disabled={isProcessing}
-                      onClick={() => setCheckoutStep(1)}
-                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      &larr; Ubah Rincian Pesanan
-                    </button>
                   </div>
-                </div>
+                </form>
               )}
 
-              {/* STEP 3: E-TICKET TERBIT LANGSUNG */}
+              {/* STEP 3: E-TICKET TERBIT & STATUS VERIFIKASI */}
               {checkoutStep === 3 && activeOrder && (
                 <div className="space-y-5 animate-fade-in">
 
-                  {/* Success Alert Banner */}
-                  <div className="bg-emerald-50 border-2 border-emerald-200 p-4 rounded-2xl text-center space-y-1">
-                    <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto" />
-                    <h4 className="text-sm font-bold text-emerald-900">Pembayaran Berhasil! E-Ticket Resmi Telah Terbit</h4>
-                    <p className="text-xs text-emerald-700">Tunjukkan tiket di bawah saat registrasi ulang di venue.</p>
-                  </div>
+                  {/* Dynamic Status Alert Banner */}
+                  {activeOrder.paymentStatus === "Pembayaran Berhasil" || activeOrder.paymentStatus === "Paid" ? (
+                    <div className="bg-emerald-50 border-2 border-emerald-200 p-4 rounded-2xl text-center space-y-1">
+                      <CheckCircle2 className="w-7 h-7 text-emerald-600 mx-auto" />
+                      <h4 className="text-sm font-bold text-emerald-900">Pembayaran Berhasil! Tiket Anda Telah Aktif</h4>
+                      <p className="text-xs text-emerald-700">Tunjukkan QR Code di bawah saat check-in registrasi ulang di venue Telkom University.</p>
+                    </div>
+                  ) : activeOrder.paymentStatus === "Pembayaran Tidak Berhasil" || activeOrder.paymentStatus === "Failed" ? (
+                    <div className="bg-rose-50 border-2 border-rose-200 p-4 rounded-2xl text-center space-y-1">
+                      <AlertCircle className="w-7 h-7 text-rose-600 mx-auto" />
+                      <h4 className="text-sm font-bold text-rose-900">Pembayaran Tidak Berhasil / Ditolak</h4>
+                      <p className="text-xs text-rose-700">Bukti pembayaran tidak valid. Tiket tidak dapat digunakan untuk check-in. Silakan hubungi admin.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-white border-2 border-blue-400/80 p-4 sm:p-5 rounded-2xl text-center space-y-2 shadow-md">
+                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto border border-blue-200 shadow-2xs">
+                        <Clock className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-blue-100/80 text-blue-900 rounded-full text-xs font-black border border-blue-300 mb-1.5">
+                          <span>Status: Menunggu Konfirmasi Admin</span>
+                        </div>
+                        <h4 className="text-sm font-extrabold text-hce-navy">
+                          Bukti Transaksi Sedang Diverifikasi
+                        </h4>
+                        <p className="text-xs text-slate-600 mt-1 max-w-lg mx-auto leading-relaxed">
+                          Bukti transaksi berhasil di-upload dan sedang dalam antrean verifikasi Admin. QR Code &amp; Order ID akan otomatis aktif setelah admin menyetujui pembayaran.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* E-TICKET CARD */}
                   <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden">
@@ -1232,16 +1773,32 @@ export default function SinglePageSeminar() {
                           </h4>
                         </div>
                       </div>
-                      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                        {activeOrder.ticketStatus}
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                        activeOrder.paymentStatus === "Pembayaran Berhasil" || activeOrder.paymentStatus === "Paid"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                          : activeOrder.paymentStatus === "Pembayaran Tidak Berhasil" || activeOrder.paymentStatus === "Failed"
+                          ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                          : "bg-blue-500/30 text-blue-200 border-blue-400/40"
+                      }`}>
+                        {activeOrder.paymentStatus === "Pembayaran Berhasil" || activeOrder.paymentStatus === "Paid"
+                          ? "Pembayaran Berhasil"
+                          : activeOrder.paymentStatus === "Pembayaran Tidak Berhasil" || activeOrder.paymentStatus === "Failed"
+                          ? "Pembayaran Tidak Berhasil"
+                          : "Menunggu Konfirmasi Admin"}
                       </span>
                     </div>
 
                     <div className="p-5 space-y-4">
-                      <div className="border-b pb-3">
-                        <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
-                        <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                      <div className="border-b pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
+                          <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
+                          <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase block">Order ID</span>
+                          <span className="text-xs font-bold font-mono text-hce-navy">{activeOrder.orderId}</span>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -1263,8 +1820,9 @@ export default function SinglePageSeminar() {
 
                         <div className="bg-slate-50 p-2.5 rounded-xl border-2 border-dashed border-hce-teal/20 text-center flex flex-col items-center justify-center">
                           <QrCode className="w-16 h-16 text-hce-navy mb-1" />
-                          <span className="text-[9px] text-slate-400 font-bold uppercase">TICKET CODE</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase">QR Code Check-In</span>
                           <strong className="text-xs font-mono font-black text-hce-teal">{activeOrder.ticketCode}</strong>
+                          <span className="text-[9px] text-slate-400 mt-0.5">Gunakan saat check-in gate</span>
                         </div>
                       </div>
 
@@ -1289,8 +1847,8 @@ export default function SinglePageSeminar() {
                           </a>
                           <button
                             type="button"
-                            onClick={() => window.print()}
-                            className="px-3 py-1.5 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                            onClick={() => handlePrintTicket(activeOrder)}
+                            className="px-3 py-1.5 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
                           >
                             <Printer className="w-3.5 h-3.5" />
                             <span>Cetak PDF</span>
@@ -1314,6 +1872,63 @@ export default function SinglePageSeminar() {
             </div>
 
           </div>
+
+          {/* CONFIRMATION POPUP MODAL */}
+          {showConfirmModal && activeOrder && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-slate-200 space-y-4 animate-scale-in">
+                <div className="text-center space-y-2">
+                  <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mx-auto border-2 border-amber-200 shadow-inner">
+                    <HelpCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-black text-hce-navy uppercase tracking-wide" style={{ fontFamily: "var(--font-bebas-neue)" }}>
+                    Konfirmasi Pemesanan
+                  </h3>
+                  <p className="text-sm font-bold text-slate-800">
+                    Apakah data yang dimasukkan sudah sesuai semua?
+                  </p>
+                </div>
+
+                {/* Summary Card */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>Nama Pemesan:</span>
+                    <span className="font-bold text-hce-navy truncate max-w-[200px]">{activeOrder.customer.fullName}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>Jumlah Tiket:</span>
+                    <span className="font-bold text-hce-navy">{activeOrder.quantity}x {activeOrder.ticketCategoryName}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>NIM / Prodi:</span>
+                    <span className="font-semibold text-slate-700">{activeOrder.customer.nim} / {activeOrder.customer.studyProgram}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-200">
+                    <span>Total Nominal:</span>
+                    <span className="font-black text-sm text-hce-orange font-mono">{formatRupiah(activeOrder.totalPrice)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmModal(false)}
+                    className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                  >
+                    Cek Kembali
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmAndSubmitOrder}
+                    className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-600/20 transition-all cursor-pointer text-center"
+                    style={{ fontFamily: "var(--font-bebas-neue)" }}
+                  >
+                    Ya, Sudah Sesuai
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1366,7 +1981,7 @@ export default function SinglePageSeminar() {
             <div className="space-y-5">
               <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-3">
                 <p className="text-xs text-hce-navy/70 leading-relaxed font-medium">
-                  Masukkan <strong>Kode Tiket</strong> (contoh: <span className="font-mono text-hce-teal">SEM-2026-1001</span>) atau <strong>Alamat Email</strong> yang didaftarkan saat pembelian untuk menemukan dan mencetak E-Ticket Anda.
+                  Masukkan <strong>Kode Tiket</strong> (contoh: <span className="font-mono text-hce-teal">SEM-2026-1001</span>), <strong>Order ID</strong>, atau <strong>Alamat Email</strong> yang didaftarkan saat pembelian untuk menemukan dan mencetak E-Ticket Anda.
                 </p>
 
                 <form onSubmit={handleLookupTicket} className="flex gap-2 pt-2">
@@ -1376,7 +1991,7 @@ export default function SinglePageSeminar() {
                       type="text"
                       value={searchTicketQuery}
                       onChange={(e) => setSearchTicketQuery(e.target.value)}
-                      placeholder="Ketik Kode Tiket atau Email peserta..."
+                      placeholder="Ketik Kode Tiket, Order ID, atau Email..."
                       className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                     />
                   </div>
@@ -1396,7 +2011,7 @@ export default function SinglePageSeminar() {
                 )}
               </div>
 
-              {/* TAMPILAN TIKET HASIL CARI (IDENTICAL TO ORDER MODAL PASS) */}
+              {/* TAMPILAN TIKET HASIL CARI */}
               {lookupTicket && (
                 <div className="bg-white rounded-2xl border-2 border-slate-300 shadow-xl overflow-hidden animate-fade-in">
                   <div className="bg-hce-navy text-white px-5 py-4 flex items-center justify-between">
@@ -1411,16 +2026,58 @@ export default function SinglePageSeminar() {
                         </h4>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                      {lookupTicket.ticketStatus}
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                      lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                        : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
+                        ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                        : "bg-blue-500/30 text-blue-200 border-blue-400/40"
+                    }`}>
+                      {lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
+                        ? "Pembayaran Berhasil"
+                        : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
+                        ? "Pembayaran Tidak Berhasil"
+                        : "Menunggu Konfirmasi Admin"}
                     </span>
                   </div>
 
                   <div className="p-5 space-y-4">
-                    <div className="border-b pb-3">
-                      <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
-                      <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
-                      <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                    {/* Status Info in Card */}
+                    <div className={`p-3 rounded-xl border text-xs font-medium ${
+                      lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
+                        ? "bg-rose-50 border-rose-200 text-rose-800"
+                        : "bg-blue-50 border-blue-200 text-blue-900"
+                    }`}>
+                      {lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid" ? (
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Status: <strong>Pembayaran Berhasil (Terverifikasi)</strong>. Tiket aktif &amp; siap check-in.</span>
+                        </div>
+                      ) : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed" ? (
+                        <div className="flex items-center gap-1.5">
+                          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                          <span>Status: <strong>Pembayaran Tidak Berhasil</strong>. Bukti transfer ditolak admin.</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-blue-600 shrink-0 animate-pulse" />
+                          <span>Status: <strong className="text-blue-900">Menunggu Konfirmasi Admin</strong>. Bukti sedang diverifikasi oleh panitia.</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-b pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
+                        <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Order ID</span>
+                        <span className="text-xs font-bold font-mono text-hce-navy">{lookupTicket.orderId}</span>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -1442,8 +2099,9 @@ export default function SinglePageSeminar() {
 
                       <div className="bg-slate-50 p-2.5 rounded-xl border-2 border-dashed border-hce-teal/20 text-center flex flex-col items-center justify-center">
                         <QrCode className="w-16 h-16 text-hce-navy mb-1" />
-                        <span className="text-[9px] text-slate-400 font-bold uppercase">TICKET CODE</span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">QR Code Check-In</span>
                         <strong className="text-xs font-mono font-black text-hce-teal">{lookupTicket.ticketCode}</strong>
+                        <span className="text-[9px] text-slate-400 mt-0.5">Gunakan saat check-in gate</span>
                       </div>
                     </div>
 
@@ -1468,8 +2126,8 @@ export default function SinglePageSeminar() {
                         </a>
                         <button
                           type="button"
-                          onClick={() => window.print()}
-                          className="px-3 py-1.5 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                          onClick={() => handlePrintTicket(lookupTicket)}
+                          className="px-3 py-1.5 bg-hce-navy hover:bg-hce-navy/90 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
                         >
                           <Printer className="w-3.5 h-3.5" />
                           <span>Cetak PDF</span>
@@ -1487,6 +2145,7 @@ export default function SinglePageSeminar() {
                   </div>
                 </div>
               )}
+
             </div>
 
           </div>
