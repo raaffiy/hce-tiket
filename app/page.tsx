@@ -41,8 +41,6 @@ import {
   Upload,
   ImageIcon,
   Trash2,
-  Plus,
-  Minus,
   X,
 } from "lucide-react";
 import {
@@ -108,7 +106,6 @@ export default function SinglePageSeminar() {
   // Checkout & Order States
   const [checkoutStep, setCheckoutStep] = useState<1 | 2 | 3>(1);
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory>(TICKET_CATEGORIES[1]);
-  const [quantity, setQuantity] = useState<number>(1);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -143,7 +140,6 @@ export default function SinglePageSeminar() {
     if (category) {
       setSelectedCategory(category);
     }
-    setQuantity(1);
     setCheckoutStep(1);
     setErrorMessage(null);
     setShowConfirmModal(false);
@@ -301,11 +297,10 @@ export default function SinglePageSeminar() {
       return;
     }
 
-    const ticketQty = Math.max(1, quantity || 1);
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const orderId = `ORD-2026-${randomNum}`;
     const ticketCode = `SEM-2026-${randomNum}`;
-    const subtotal = selectedCategory.price * ticketQty;
+    const subtotal = selectedCategory.price;
 
     const newOrder: SeminarOrder = {
       orderId,
@@ -313,7 +308,7 @@ export default function SinglePageSeminar() {
       ticketCategoryId: selectedCategory.id,
       ticketCategoryName: selectedCategory.name,
       ticketPrice: selectedCategory.price,
-      quantity: ticketQty,
+      quantity: 1,
       totalPrice: subtotal,
       paymentMethod: "QRIS Official (Scan QR)",
       paymentStatus: "Menunggu Pembayaran",
@@ -1459,47 +1454,6 @@ export default function SinglePageSeminar() {
                         })}
                       </div>
 
-                      {/* Quantity Selector (Pilih Lebih Dari 1 Tiket) */}
-                      <div className="p-4 bg-white rounded-xl border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                        <div>
-                          <span className="text-xs font-bold text-hce-navy block">Jumlah Tiket:</span>
-                          <span className="text-[11px] text-slate-500">Pilih kuantiti tiket yang ingin dipesan (Maksimal 10 tiket)</span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-                            <button
-                              type="button"
-                              onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                              disabled={quantity <= 1}
-                              className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 transition-colors cursor-pointer"
-                              aria-label="Kurangi jumlah tiket"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="w-12 text-center text-sm font-black font-mono text-hce-navy bg-white py-1.5 border-x border-slate-200">
-                              {quantity}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setQuantity((prev) => Math.min(10, prev + 1))}
-                              disabled={quantity >= 10}
-                              className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 transition-colors cursor-pointer"
-                              aria-label="Tambah jumlah tiket"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span className="text-[10px] text-slate-400 block font-medium">Subtotal Tiket:</span>
-                            <span className="text-sm font-extrabold text-hce-teal font-mono">
-                              {formatRupiah(selectedCategory.price * quantity)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Benefit Termasuk */}
                       <div className="pt-3 border-t border-hce-teal/15 space-y-2">
                         <span className="text-xs font-bold text-hce-navy uppercase tracking-wider block">
@@ -1634,10 +1588,10 @@ export default function SinglePageSeminar() {
                     <div className="p-5 rounded-2xl bg-hce-navy text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
                         <span className="text-xs text-slate-300 font-medium block">
-                          Total Pembayaran ({quantity} Tiket):
+                          Total Pembayaran:
                         </span>
                         <span className="text-2xl sm:text-3xl font-black text-hce-orange" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                          {formatRupiah(selectedCategory.price * quantity)}
+                          {formatRupiah(selectedCategory.price)}
                         </span>
                       </div>
 
@@ -1669,7 +1623,7 @@ export default function SinglePageSeminar() {
                         <h4 className="text-base font-extrabold text-hce-navy">{activeOrder.orderId}</h4>
                       </div>
                       <div className="text-left sm:text-right">
-                        <span className="text-[10px] text-slate-500 font-medium block">Total Nominal Transaction ({activeOrder.quantity} Tiket)</span>
+                        <span className="text-[10px] text-slate-500 font-medium block">Total Pembayaran</span>
                         <span className="text-xl font-black text-hce-orange">{formatRupiah(activeOrder.totalPrice)}</span>
                       </div>
                     </div>
@@ -1684,11 +1638,6 @@ export default function SinglePageSeminar() {
                           </span>
                           <h5 className="text-xs font-black text-hce-navy">
                             Total: <span className="text-hce-orange font-mono text-sm">{formatRupiah(activeOrder.totalPrice)}</span>
-                            {activeOrder.quantity > 1 && (
-                              <span className="text-[10px] text-slate-500 font-normal block">
-                                ({activeOrder.quantity} Tiket × {formatRupiah(activeOrder.ticketPrice)})
-                              </span>
-                            )}
                           </h5>
                         </div>
 
@@ -2003,8 +1952,8 @@ export default function SinglePageSeminar() {
                       <span className="font-bold text-hce-navy truncate max-w-[200px]">{activeOrder.customer.fullName}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600">
-                      <span>Jumlah Tiket:</span>
-                      <span className="font-bold text-hce-navy">{activeOrder.quantity}x {activeOrder.ticketCategoryName}</span>
+                      <span>Paket Tiket:</span>
+                      <span className="font-bold text-hce-navy">{activeOrder.ticketCategoryName}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600">
                       <span>NIM / Prodi:</span>
