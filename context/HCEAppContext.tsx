@@ -23,7 +23,9 @@ import {
   fetchTransactionsFromSupabase,
   updateTransactionStatusInSupabase,
   updateParticipantAndTransactionInSupabase,
+  validateAndPerformCheckInInSupabase,
   performCheckInInSupabase,
+  CheckInValidationResult,
   fetchStaffFromSupabase,
   createStaffInSupabase,
   deleteStaffInSupabase,
@@ -103,7 +105,10 @@ interface HCEAppContextType {
   archiveTicket: (id: string) => Promise<void>;
 
   // Actions - Check-In
-  performCheckIn: (participantIdOrOrderId: string, method?: CheckInMethod) => Promise<{ success: boolean; message: string; participant?: Participant }>;
+  performCheckIn: (
+    participantIdOrOrderId: string,
+    method?: CheckInMethod
+  ) => Promise<CheckInValidationResult>;
 
   // Actions - Participants & Transactions
   updateParticipantAndTransaction: (orderId: string, updates: {
@@ -420,54 +425,119 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Check-In Operation
+  // Check-In Operation with real-time Supabase status validation
   const performCheckIn = async (
     query: string, 
     method: CheckInMethod = 'QR Scan'
-  ): Promise<{ success: boolean; message: string; participant?: Participant }> => {
-    const cleanedQuery = query.trim().toLowerCase();
+  ): Promise<CheckInValidationResult> => {
+    const cleanedQuery = query.trim();
     if (!cleanedQuery) {
-      return { success: false, message: 'Harap masukkan query pencarian atau data QR.' };
+      return { 
+        success: false, 
+        statusType: 'NOT_FOUND',
+        message: 'Harap masukkan query pencarian atau data QR.' 
+      };
     }
 
+    // 1. Validasi langsung ke Database Supabase (Status transaksi terbaru)
+    const dbResult = await validateAndPerformCheckInInSupabase(cleanedQuery, method);
+
+    if (dbResult.participant) {
+      const p = dbResult.participant;
+
+      // Update local participants state
+      setParticipants((prev) => {
+        const idx = prev.findIndex(
+          (item) => item.id === p.id || item.orderId === p.orderId || (item.nim && p.nim && item.nim === p.nim)
+        );
+        if (idx !== -1) {
+          const copy = [...prev];
+          copy[idx] = { ...copy[idx], ...p };
+          return copy;
+        }
+        return [p, ...prev];
+      });
+
+      // Update local transactions state
+      setTransactions((prev) =>
+        prev.map((tx) => {
+          if (tx.orderId === p.orderId || (tx.nim && p.nim && tx.nim === p.nim)) {
+            return {
+              ...tx,
+              paymentStatus: p.paymentStatus,
+              checkInStatus: p.checkInStatus,
+              lastUpdated: new Date().toISOString(),
+            };
+          }
+          return tx;
+        })
+      );
+
+      // Toast feedback
+      if (dbResult.statusType === 'PAID') {
+        addToast('QR berhasil di-scan.', 'success');
+        recordActivity(
+          'checkin_success',
+          `Check-In Berhasil (${method})`,
+          `${p.name} (${p.nim}) - ${p.ticketName} pada pukul ${p.checkInTime || 'sekarang'}`
+        );
+      } else if (dbResult.statusType === 'PENDING') {
+        addToast('QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.', 'warning');
+      } else if (dbResult.statusType === 'FAILED') {
+        addToast('QR tersebut ditolak oleh admin.', 'error');
+      } else if (dbResult.statusType === 'ALREADY_CHECKED_IN') {
+        addToast(dbResult.message, 'warning');
+      }
+
+      return dbResult;
+    }
+
+    // Fallback: Check local participants state if DB not responding
     const participantIndex = participants.findIndex(
       (p) =>
-        p.id.toLowerCase() === cleanedQuery ||
-        p.orderId.toLowerCase() === cleanedQuery ||
-        p.nim.toLowerCase() === cleanedQuery ||
-        p.name.toLowerCase().includes(cleanedQuery) ||
-        p.email.toLowerCase() === cleanedQuery
+        p.id.toLowerCase() === cleanedQuery.toLowerCase() ||
+        p.orderId.toLowerCase() === cleanedQuery.toLowerCase() ||
+        p.nim.toLowerCase() === cleanedQuery.toLowerCase() ||
+        p.name.toLowerCase().includes(cleanedQuery.toLowerCase()) ||
+        p.email.toLowerCase() === cleanedQuery.toLowerCase()
     );
 
     if (participantIndex === -1) {
       addToast('Peserta tidak ditemukan dalam database.', 'error');
-      return { success: false, message: 'Peserta dengan data tersebut tidak ditemukan.' };
+      return { 
+        success: false, 
+        statusType: 'NOT_FOUND',
+        message: 'Peserta dengan data tersebut tidak ditemukan.' 
+      };
     }
 
     const target = participants[participantIndex];
 
-    // Check payment confirmation status
-    if (target.paymentStatus !== 'Paid') {
-      let statusDesc = 'Pembayaran Belum Dikonfirmasi';
-      if (target.paymentStatus === 'Pending') {
-        statusDesc = 'Status: "Menunggu Konfirmasi Admin". Harap verifikasi bukti transfer peserta di menu Transactions terlebih dahulu.';
-      } else if (target.paymentStatus === 'Failed') {
-        statusDesc = 'Status: "Pembayaran Tidak Berhasil". Bukti transfer ditolak atau tidak valid. QR Code tidak dapat digunakan untuk Check-in.';
-      } else if (target.paymentStatus === 'Refunded') {
-        statusDesc = 'Status: "Refunded". Tiket ini telah dibatalkan / di-refund.';
-      }
-      addToast(`Check-In Ditolak: ${statusDesc}`, 'error');
+    if (target.paymentStatus === 'Pending') {
+      addToast('QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.', 'warning');
       return { 
         success: false, 
-        message: `Check-in ditolak. ${statusDesc}`,
+        statusType: 'PENDING',
+        message: 'QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.',
+        participant: target 
+      };
+    }
+
+    if (target.paymentStatus === 'Failed' || target.paymentStatus === 'Refunded') {
+      addToast('QR tersebut ditolak oleh admin.', 'error');
+      return { 
+        success: false, 
+        statusType: 'FAILED',
+        message: 'QR tersebut ditolak oleh admin.',
         participant: target 
       };
     }
 
     if (target.checkInStatus === 'Checked In') {
-      addToast(`Peserta ${target.name} sudah check-in sebelumnya pada ${target.checkInTime}.`, 'warning');
+      addToast(`Peserta sudah check-in pada ${target.checkInTime} (${target.checkedInMethod}).`, 'warning');
       return { 
         success: false, 
+        statusType: 'ALREADY_CHECKED_IN',
         message: `Peserta sudah check-in pada ${target.checkInTime} (${target.checkedInMethod}).`,
         participant: target 
       };
@@ -500,7 +570,7 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Save to Supabase
     await performCheckInInSupabase(target.id, target.orderId, method);
 
-    addToast(`Check-In berhasil untuk ${target.name} (${method})!`, 'success');
+    addToast('QR berhasil di-scan.', 'success');
     recordActivity(
       'checkin_success',
       `Check-In Berhasil (${method})`,
@@ -509,7 +579,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     return {
       success: true,
-      message: 'Check-In berhasil diverifikasi!',
+      statusType: 'PAID',
+      message: 'QR berhasil di-scan.',
       participant: updatedParticipant,
     };
   };

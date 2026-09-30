@@ -413,12 +413,16 @@ export function saveNewOrder(order: SeminarOrder): void {
 
 export function findOrderByCode(query: string): SeminarOrder | undefined {
   const clean = query.trim().toUpperCase();
+  const cleanLower = query.trim().toLowerCase();
   const all = getSavedOrders();
   return all.find(
     (o) =>
       o.orderId.toUpperCase() === clean ||
       o.ticketCode.toUpperCase() === clean ||
-      o.customer.email.toLowerCase() === query.trim().toLowerCase()
+      (o.customer?.nim && o.customer.nim.trim().toLowerCase() === cleanLower) ||
+      (o.customer?.nim && o.customer.nim.trim().toLowerCase().includes(cleanLower)) ||
+      (o.customer?.email && o.customer.email.toLowerCase() === cleanLower) ||
+      (o.customer?.fullName && o.customer.fullName.toLowerCase().includes(cleanLower))
   );
 }
 

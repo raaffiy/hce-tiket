@@ -8,6 +8,7 @@ import {
   Sponsor,
   RecentActivity,
   PaymentStatus,
+  CheckInStatus,
   CheckInMethod,
 } from '@/types/hce';
 
@@ -353,6 +354,189 @@ export async function updateParticipantAndTransactionInSupabase(
   } catch (err) {
     console.error('Supabase updateParticipantAndTransaction exception:', err);
     return false;
+  }
+}
+
+export interface CheckInValidationResult {
+  success: boolean;
+  statusType: 'PAID' | 'PENDING' | 'FAILED' | 'ALREADY_CHECKED_IN' | 'NOT_FOUND';
+  message: string;
+  participant?: Participant;
+  paymentStatus?: string;
+  checkInStatus?: string;
+  checkInTime?: string;
+}
+
+export async function validateAndPerformCheckInInSupabase(
+  query: string,
+  method: CheckInMethod = 'QR Scan'
+): Promise<CheckInValidationResult> {
+  const clean = query.trim();
+  if (!clean) {
+    return {
+      success: false,
+      statusType: 'NOT_FOUND',
+      message: 'Data QR tidak boleh kosong.',
+    };
+  }
+
+  // Also clean if user scanned with SEM- prefix or URL
+  const searchPattern = clean.replace(/^SEM-/, '').replace(/^ORD-/, '');
+
+  try {
+    // 1. Check transactions table
+    const { data: txData } = await supabase
+      .from('transactions')
+      .select('*')
+      .or(`order_id.ilike.%${clean}%,order_id.ilike.%${searchPattern}%,participant_id.ilike.%${clean}%,nim.ilike.%${clean}%,email.ilike.%${clean}%`)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    // 2. Check participants table
+    const { data: partData } = await supabase
+      .from('participants')
+      .select('*')
+      .or(`id.ilike.%${clean}%,order_id.ilike.%${clean}%,order_id.ilike.%${searchPattern}%,nim.ilike.%${clean}%,email.ilike.%${clean}%`)
+      .order('registered_at', { ascending: false })
+      .limit(1);
+
+    const tx = txData && txData.length > 0 ? txData[0] : null;
+    const part = partData && partData.length > 0 ? partData[0] : null;
+
+    if (!tx && !part) {
+      return {
+        success: false,
+        statusType: 'NOT_FOUND',
+        message: 'Peserta / Tiket tidak ditemukan dalam database.',
+      };
+    }
+
+    // Determine current effective payment status and check-in status
+    const effectivePaymentStatus: PaymentStatus =
+      (tx?.payment_status as PaymentStatus) ||
+      (part?.payment_status as PaymentStatus) ||
+      'Pending';
+
+    const effectiveCheckInStatus: CheckInStatus =
+      (part?.check_in_status as CheckInStatus) ||
+      (tx?.check_in_status as CheckInStatus) ||
+      'Not Checked In';
+
+    const participantObj: Participant = {
+      id: part?.id || tx?.participant_id || `PAR-${Date.now()}`,
+      orderId: tx?.order_id || part?.order_id || '',
+      name: part?.name || tx?.participant_name || 'Peserta',
+      nim: part?.nim || tx?.nim || '',
+      email: part?.email || tx?.email || '',
+      whatsapp: part?.whatsapp || tx?.whatsapp || '',
+      faculty: part?.faculty || tx?.faculty || '',
+      prodi: part?.prodi || tx?.study_program || '',
+      ticketId: tx?.ticket_id || part?.ticket_id || '',
+      ticketName: tx?.ticket_name || part?.ticket_name || 'Seminar Pass',
+      ticketType: (tx?.ticket_type || part?.ticket_type || 'PAID') as any,
+      price: Number(tx?.amount) || Number(part?.price) || 0,
+      paymentStatus: effectivePaymentStatus,
+      paymentProof: tx?.payment_proof || part?.payment_proof || '',
+      checkInStatus: effectiveCheckInStatus,
+      checkInTime: part?.check_in_time || '',
+      checkedInMethod: (part?.checked_in_method || method) as CheckInMethod,
+      registeredAt: part?.registered_at || tx?.order_date || new Date().toISOString(),
+    };
+
+    // Validasi 1: Menunggu Konfirmasi -> popup kuning: "QR tidak bisa di-scan karena belum dikonfirmasi oleh admin."
+    if (effectivePaymentStatus === 'Pending') {
+      return {
+        success: false,
+        statusType: 'PENDING',
+        message: 'QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.',
+        participant: participantObj,
+        paymentStatus: 'Pending',
+        checkInStatus: effectiveCheckInStatus,
+      };
+    }
+
+    // Validasi 2: Pembayaran Tidak Berhasil -> popup merah: "QR tersebut ditolak oleh admin."
+    if (effectivePaymentStatus === 'Failed' || effectivePaymentStatus === 'Refunded') {
+      return {
+        success: false,
+        statusType: 'FAILED',
+        message: 'QR tersebut ditolak oleh admin.',
+        participant: participantObj,
+        paymentStatus: effectivePaymentStatus,
+        checkInStatus: effectiveCheckInStatus,
+      };
+    }
+
+    // Validasi 3: Cek jika sudah pernah check-in
+    if (effectiveCheckInStatus === 'Checked In') {
+      return {
+        success: false,
+        statusType: 'ALREADY_CHECKED_IN',
+        message: `Peserta sudah check-in sebelumnya pada ${participantObj.checkInTime || 'waktu sebelumnya'} (${participantObj.checkedInMethod || 'QR'}).`,
+        participant: participantObj,
+        paymentStatus: 'Paid',
+        checkInStatus: 'Checked In',
+        checkInTime: participantObj.checkInTime,
+      };
+    }
+
+    // Validasi 4: Pembayaran Berhasil -> popup hijau: "QR berhasil di-scan."
+    if (effectivePaymentStatus === 'Paid') {
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+      const nowIso = now.toISOString();
+
+      // Update di tabel participants
+      if (participantObj.id) {
+        await supabase
+          .from('participants')
+          .update({
+            check_in_status: 'Checked In',
+            check_in_time: timeStr,
+            checked_in_method: method,
+          })
+          .eq('id', participantObj.id);
+      }
+
+      // Update di tabel transactions
+      if (participantObj.orderId) {
+        await supabase
+          .from('transactions')
+          .update({
+            check_in_status: 'Checked In',
+            last_updated: nowIso,
+          })
+          .eq('order_id', participantObj.orderId);
+      }
+
+      participantObj.checkInStatus = 'Checked In';
+      participantObj.checkInTime = timeStr;
+      participantObj.checkedInMethod = method;
+
+      return {
+        success: true,
+        statusType: 'PAID',
+        message: 'QR berhasil di-scan.',
+        participant: participantObj,
+        paymentStatus: 'Paid',
+        checkInStatus: 'Checked In',
+        checkInTime: timeStr,
+      };
+    }
+
+    return {
+      success: false,
+      statusType: 'FAILED',
+      message: 'Status pembayaran tidak valid.',
+      participant: participantObj,
+    };
+  } catch (err) {
+    console.error('validateAndPerformCheckInInSupabase exception:', err);
+    return {
+      success: false,
+      statusType: 'FAILED',
+      message: 'Terjadi kesalahan saat memvalidasi QR ke database.',
+    };
   }
 }
 
@@ -1135,16 +1319,16 @@ export async function lookupTicketInSupabase(query: string): Promise<any | null>
   if (!clean) return null;
 
   try {
-    // Search in transactions by order_id or email
+    // 1. Search in transactions by order_id, email, participant_id, nim, or participant_name
     const { data: txData } = await supabase
       .from('transactions')
       .select('*')
-      .or(`order_id.ilike.%${clean}%,email.ilike.%${clean}%,participant_id.ilike.%${clean}%,nim.ilike.%${clean}%`)
+      .or(`order_id.ilike.%${clean}%,email.ilike.%${clean}%,participant_id.ilike.%${clean}%,nim.ilike.%${clean}%,participant_name.ilike.%${clean}%`)
+      .order('created_at', { ascending: false })
       .limit(1);
 
     if (txData && txData.length > 0) {
       const tx = txData[0];
-      // Map to SeminarOrder format
       return {
         orderId: tx.order_id,
         ticketCode: 'SEM-' + (tx.order_id.replace(/^ORD-/, '') || tx.order_id),
@@ -1171,7 +1355,7 @@ export async function lookupTicketInSupabase(query: string): Promise<any | null>
             : tx.payment_status === 'Failed'
             ? 'Tiket Ditolak'
             : 'Menunggu Konfirmasi',
-        createdAt: tx.order_date || new Date().toISOString(),
+        createdAt: tx.order_date || tx.created_at || new Date().toISOString(),
         customer: {
           fullName: tx.participant_name,
           email: tx.email,
@@ -1179,6 +1363,67 @@ export async function lookupTicketInSupabase(query: string): Promise<any | null>
           nim: tx.nim,
           faculty: tx.faculty || '',
           studyProgram: tx.study_program || '',
+        },
+      };
+    }
+
+    // 2. Search in participants table if not found directly in transactions
+    const { data: partData } = await supabase
+      .from('participants')
+      .select('*')
+      .or(`nim.ilike.%${clean}%,email.ilike.%${clean}%,order_id.ilike.%${clean}%,id.ilike.%${clean}%,name.ilike.%${clean}%`)
+      .order('registered_at', { ascending: false })
+      .limit(1);
+
+    if (partData && partData.length > 0) {
+      const p = partData[0];
+      // Try to find matching transaction for full payment details
+      let tx: any = null;
+      if (p.order_id) {
+        const { data: matchedTx } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('order_id', p.order_id)
+          .limit(1);
+        if (matchedTx && matchedTx.length > 0) {
+          tx = matchedTx[0];
+        }
+      }
+
+      return {
+        orderId: p.order_id || p.id,
+        ticketCode: 'SEM-' + ((p.order_id || p.id).replace(/^ORD-/, '') || p.id),
+        ticketCategoryId: p.ticket_id || 'regular',
+        ticketCategoryName: p.ticket_name || 'Seminar Pass',
+        ticketPrice: Number(p.price) || (tx ? Number(tx.amount) : 0),
+        quantity: tx ? Number(tx.quantity || 1) : 1,
+        totalPrice: tx ? Number(tx.amount) : Number(p.price) || 0,
+        paymentMethod: tx?.payment_method || 'QRIS Instant',
+        paymentProof: p.payment_proof || tx?.payment_proof || '/scanqr.jpeg',
+        paymentStatus:
+          (p.payment_status || tx?.payment_status) === 'Paid'
+            ? 'Pembayaran Berhasil'
+            : (p.payment_status || tx?.payment_status) === 'Pending'
+            ? 'Menunggu Konfirmasi Admin'
+            : (p.payment_status || tx?.payment_status) === 'Failed'
+            ? 'Pembayaran Tidak Berhasil'
+            : 'Menunggu Pembayaran',
+        ticketStatus:
+          (p.payment_status || tx?.payment_status) === 'Paid'
+            ? (p.check_in_status || tx?.check_in_status) === 'Checked In'
+              ? 'Tiket Digunakan'
+              : 'Tiket Aktif'
+            : (p.payment_status || tx?.payment_status) === 'Failed'
+            ? 'Tiket Ditolak'
+            : 'Menunggu Konfirmasi',
+        createdAt: p.registered_at || tx?.order_date || new Date().toISOString(),
+        customer: {
+          fullName: p.name,
+          email: p.email,
+          phone: p.whatsapp || tx?.whatsapp || '',
+          nim: p.nim,
+          faculty: p.faculty || tx?.faculty || '',
+          studyProgram: p.prodi || tx?.study_program || '',
         },
       };
     }

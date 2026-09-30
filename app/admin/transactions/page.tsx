@@ -9,8 +9,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { SearchInput, FilterSelect } from '@/components/ui/FormControls';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
-import Image from 'next/image';
 import { SEMINAR_INFO, SPEAKER_INFO } from '@/utils/seminarData';
+import { generateQRCodeDataUrl } from '@/components/ui/QRCodeImage';
 import {
   ReceiptText,
   CheckCircle2,
@@ -72,12 +72,14 @@ export default function TransactionsPage() {
     }).format(amount);
   };
 
-  const handleDownloadETicket = (tx: Transaction) => {
+  const handleDownloadETicket = async (tx: Transaction) => {
     const printWindow = window.open('', '_blank', 'width=850,height=900');
     if (!printWindow) {
       window.print();
       return;
     }
+
+    const qrDataUrl = await generateQRCodeDataUrl(tx.orderId.replace('ORD', 'SEM') || tx.orderId, 250);
 
     const isPaid = tx.paymentStatus === 'Paid';
     const statusBg = isPaid ? '#dcfce7' : '#e0f2fe';
@@ -341,20 +343,7 @@ export default function TransactionsPage() {
               </div>
 
               <div class="qr-box">
-                <svg class="qr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="5" height="5" x="3" y="3" rx="1"/>
-                  <rect width="5" height="5" x="16" y="3" rx="1"/>
-                  <rect width="5" height="5" x="3" y="16" rx="1"/>
-                  <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
-                  <path d="M21 21v.01"/>
-                  <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
-                  <path d="M3 12h.01"/>
-                  <path d="M12 3h.01"/>
-                  <path d="M12 16v.01"/>
-                  <path d="M16 12h1"/>
-                  <path d="M21 12v.01"/>
-                  <path d="M12 21v-1"/>
-                </svg>
+                <img src="${qrDataUrl}" alt="QR Check-In" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 6px; border-radius: 6px;" />
                 <div class="code-label">QR CHECK-IN</div>
                 <div class="code-val">${tx.orderId.replace('ORD', 'SEM')}</div>
                 <div class="order-sub">Order: ${tx.orderId}</div>

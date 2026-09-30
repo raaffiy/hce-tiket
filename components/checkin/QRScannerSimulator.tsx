@@ -6,6 +6,8 @@ import {
   CameraOff,
   CheckCircle2,
   AlertCircle,
+  Clock,
+  XCircle,
   Scan,
   Sparkles,
   RefreshCw,
@@ -21,7 +23,7 @@ export const QRScannerSimulator: React.FC = () => {
   const { participants, performCheckIn } = useHCEApp();
 
   const [scannerState, setScannerState] = useState<
-    'cameraOff' | 'cameraOn' | 'scanning' | 'success' | 'failed'
+    'cameraOff' | 'cameraOn' | 'scanning' | 'success' | 'pending' | 'failed'
   >('cameraOff');
 
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export const QRScannerSimulator: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [scannedResult, setScannedResult] = useState<{
+    statusType: 'PAID' | 'PENDING' | 'FAILED' | 'ALREADY_CHECKED_IN' | 'NOT_FOUND';
     participant?: Participant;
     message: string;
     timestamp?: string;
@@ -46,7 +49,7 @@ export const QRScannerSimulator: React.FC = () => {
 
   // Play audio beep feedback
   const playBeep = useCallback(
-    (isSuccess: boolean) => {
+    (statusType: string) => {
       if (!soundEnabled) return;
       try {
         const AudioCtx =
@@ -57,8 +60,11 @@ export const QRScannerSimulator: React.FC = () => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        osc.type = isSuccess ? 'sine' : 'sawtooth';
-        osc.frequency.setValueAtTime(isSuccess ? 880 : 260, audioCtx.currentTime);
+        const isSuccess = statusType === 'PAID';
+        const isPending = statusType === 'PENDING';
+
+        osc.type = isSuccess ? 'sine' : isPending ? 'triangle' : 'sawtooth';
+        osc.frequency.setValueAtTime(isSuccess ? 880 : isPending ? 550 : 260, audioCtx.currentTime);
 
         gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (isSuccess ? 0.2 : 0.35));
@@ -75,9 +81,15 @@ export const QRScannerSimulator: React.FC = () => {
   );
 
   // Trigger haptic vibration on mobile Chrome
-  const triggerHaptic = (isSuccess: boolean) => {
+  const triggerHaptic = (statusType: string) => {
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(isSuccess ? 150 : [100, 50, 100]);
+      if (statusType === 'PAID') {
+        navigator.vibrate(150);
+      } else if (statusType === 'PENDING') {
+        navigator.vibrate([80, 50, 80]);
+      } else {
+        navigator.vibrate([100, 50, 100, 50, 100]);
+      }
     }
   };
 
@@ -114,10 +126,10 @@ export const QRScannerSimulator: React.FC = () => {
   const handleScannedData = useCallback(
     async (rawData: string) => {
       const now = Date.now();
-      // Anti-duplicate debounce within 2.5s for same code
+      // Anti-duplicate debounce within 2s for same code
       if (
         lastScannedCodeRef.current === rawData &&
-        now - lastScannedTimeRef.current < 2500
+        now - lastScannedTimeRef.current < 2000
       ) {
         return;
       }
@@ -145,7 +157,7 @@ export const QRScannerSimulator: React.FC = () => {
         cancelAnimationFrame(animationFrameId.current);
       }
 
-      // Perform check-in
+      // Perform check-in with database validation
       const res = await performCheckIn(cleanQuery, 'QR Scan');
       const dateNow = new Date();
       const timeStr = `${dateNow.toLocaleDateString('id-ID', {
@@ -155,16 +167,19 @@ export const QRScannerSimulator: React.FC = () => {
       })}, ${dateNow.toTimeString().slice(0, 5)}`;
 
       setScannedResult({
+        statusType: res.statusType,
         participant: res.participant,
         message: res.message,
         timestamp: timeStr,
       });
 
-      playBeep(res.success);
-      triggerHaptic(res.success);
+      playBeep(res.statusType);
+      triggerHaptic(res.statusType);
 
-      if (res.success) {
+      if (res.statusType === 'PAID') {
         setScannerState('success');
+      } else if (res.statusType === 'PENDING') {
+        setScannerState('pending');
       } else {
         setScannerState('failed');
       }
@@ -208,7 +223,7 @@ export const QRScannerSimulator: React.FC = () => {
     }
   }, [handleScannedData]);
 
-  // Start Camera Stream (Compatible with HP Chrome & Laptop Chrome)
+  // Start Camera Stream
   const startCamera = useCallback(async () => {
     stopCamera();
     setCameraError(null);
@@ -244,7 +259,6 @@ export const QRScannerSimulator: React.FC = () => {
           audio: false,
         });
       } catch (err: unknown) {
-        // Fallback constraint if environment camera is not available
         console.warn('Fallback to default video constraint', err);
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
@@ -256,7 +270,7 @@ export const QRScannerSimulator: React.FC = () => {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute('playsinline', 'true'); // Required for iOS/Chrome mobile
+        videoRef.current.setAttribute('playsinline', 'true');
         videoRef.current.muted = true;
         await videoRef.current.play();
       }
@@ -300,13 +314,22 @@ export const QRScannerSimulator: React.FC = () => {
   }, [stopCamera]);
 
   // Quick manual simulator scan
-  const simulateScan = (sampleOrderId: string) => {
-    handleScannedData(sampleOrderId);
+  const simulateScan = (sampleQuery: string) => {
+    handleScannedData(sampleQuery);
   };
 
-  const sampleNotCheckedIn = participants
-    .filter((p) => p.checkInStatus === 'Not Checked In')
-    .slice(0, 2);
+  const samplePaidNotCheckedIn = participants
+    .filter((p) => p.paymentStatus === 'Paid' && p.checkInStatus === 'Not Checked In')
+    .slice(0, 1);
+
+  const samplePending = participants
+    .filter((p) => p.paymentStatus === 'Pending')
+    .slice(0, 1);
+
+  const sampleFailed = participants
+    .filter((p) => p.paymentStatus === 'Failed' || p.paymentStatus === 'Refunded')
+    .slice(0, 1);
+
   const sampleCheckedIn = participants
     .filter((p) => p.checkInStatus === 'Checked In')
     .slice(0, 1);
@@ -388,7 +411,7 @@ export const QRScannerSimulator: React.FC = () => {
           <video
             ref={videoRef}
             className={`w-full h-full object-cover ${
-              scannerState === 'cameraOff' || scannerState === 'success' || scannerState === 'failed'
+              scannerState === 'cameraOff' || scannerState === 'success' || scannerState === 'pending' || scannerState === 'failed'
                 ? 'hidden'
                 : 'block'
             }`}
@@ -440,51 +463,134 @@ export const QRScannerSimulator: React.FC = () => {
             </div>
           )}
 
-          {/* State: Check-In Success */}
-          {scannerState === 'success' && scannedResult?.participant && (
-            <div className="w-full h-full bg-emerald-950 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500 flex items-center justify-center mb-3">
+          {/* ========================================================== */}
+          {/* 1. POPUP HIJAU: PEMBAYARAN BERHASIL (CHECK-IN SUCCESS) */}
+          {/* ========================================================== */}
+          {scannerState === 'success' && (
+            <div className="w-full h-full bg-emerald-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-emerald-500">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h4 className="text-lg font-extrabold text-emerald-200">CHECK-IN BERHASIL!</h4>
-              <p className="text-xs text-emerald-300 font-mono mb-2">{scannedResult.timestamp}</p>
+              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">STATUS: PEMBAYARAN BERHASIL</span>
+              <h4 className="text-xl font-black text-white mt-0.5">&ldquo;QR berhasil di-scan.&rdquo;</h4>
 
-              <div className="bg-emerald-900/80 p-3.5 rounded-xl border border-emerald-700/60 max-w-sm w-full text-left text-xs space-y-1 mt-1 shadow-md">
-                <p className="font-extrabold text-white text-base">
-                  {scannedResult.participant.name}
-                </p>
-                <p className="text-emerald-200 font-mono">NIM: {scannedResult.participant.nim}</p>
-                <p className="text-emerald-200">
-                  Tiket: <span className="font-bold">{scannedResult.participant.ticketName}</span>
-                </p>
-                <p className="text-emerald-300 font-mono text-[11px]">
-                  Order ID: {scannedResult.participant.orderId}
-                </p>
-              </div>
+              {scannedResult?.participant && (
+                <div className="bg-emerald-900/80 p-3 rounded-xl border border-emerald-700/60 max-w-sm w-full text-left text-xs space-y-1 mt-2.5 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <p className="font-extrabold text-white text-sm">
+                      {scannedResult.participant.name}
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-200 border border-emerald-400/40">
+                      Terverifikasi
+                    </span>
+                  </div>
+                  <p className="text-emerald-200 font-mono">NIM: {scannedResult.participant.nim || '-'}</p>
+                  <p className="text-emerald-200">
+                    Tiket: <span className="font-bold">{scannedResult.participant.ticketName}</span>
+                  </p>
+                  <p className="text-emerald-300 font-mono text-[11px]">
+                    Order ID: {scannedResult.participant.orderId}
+                  </p>
+                  <p className="text-emerald-300 text-[10px] pt-1 border-t border-emerald-800">
+                    Waktu Scan: {scannedResult.timestamp}
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={startCamera}
-                className="mt-4 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                className="mt-3.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer hover:scale-105"
               >
                 <RefreshCw className="w-4 h-4" /> Scan Peserta Berikutnya
               </button>
             </div>
           )}
 
-          {/* State: Check-In Failed / Duplicate */}
-          {scannerState === 'failed' && (
-            <div className="w-full h-full bg-rose-950 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500 flex items-center justify-center mb-3">
-                <AlertCircle className="w-8 h-8" />
+          {/* ========================================================== */}
+          {/* 2. POPUP KUNING: MENUNGGU KONFIRMASI */}
+          {/* ========================================================== */}
+          {scannerState === 'pending' && (
+            <div className="w-full h-full bg-amber-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-amber-500">
+              <div className="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border-2 border-amber-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                <Clock className="w-8 h-8" />
               </div>
-              <h4 className="text-lg font-extrabold text-rose-200">PERINGATAN CHECK-IN</h4>
-              <p className="text-xs text-rose-300 max-w-sm mt-1 px-4 leading-relaxed font-medium">
-                {scannedResult?.message}
-              </p>
+              <span className="text-[11px] font-black uppercase tracking-widest text-amber-400">STATUS: MENUNGGU KONFIRMASI</span>
+              <h4 className="text-base sm:text-lg font-black text-amber-100 mt-0.5 leading-snug px-3">
+                &ldquo;QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.&rdquo;
+              </h4>
+
+              {scannedResult?.participant && (
+                <div className="bg-amber-900/80 p-3 rounded-xl border border-amber-700/60 max-w-sm w-full text-left text-xs space-y-1 mt-2.5 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <p className="font-extrabold text-white text-sm">
+                      {scannedResult.participant.name}
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/30 text-amber-200 border border-amber-400/40">
+                      Pending
+                    </span>
+                  </div>
+                  <p className="text-amber-200 font-mono">NIM: {scannedResult.participant.nim || '-'}</p>
+                  <p className="text-amber-200">
+                    Tiket: <span className="font-bold">{scannedResult.participant.ticketName}</span>
+                  </p>
+                  <p className="text-amber-300 font-mono text-[11px]">
+                    Order ID: {scannedResult.participant.orderId}
+                  </p>
+                  <p className="text-amber-300 text-[10px] pt-1 border-t border-amber-800">
+                    Harap verifikasi bukti transfer di menu Transactions terlebih dahulu.
+                  </p>
+                </div>
+              )}
 
               <button
                 onClick={startCamera}
-                className="mt-4 px-5 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                className="mt-3.5 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer hover:scale-105"
+              >
+                <RefreshCw className="w-4 h-4" /> Scan Peserta Berikutnya
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* 3. POPUP MERAH: PEMBAYARAN TIDAK BERHASIL / DITOLAK */}
+          {/* ========================================================== */}
+          {scannerState === 'failed' && (
+            <div className="w-full h-full bg-rose-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-rose-500">
+              <div className="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 border-2 border-rose-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(244,63,94,0.4)]">
+                <XCircle className="w-8 h-8" />
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-widest text-rose-400">
+                {scannedResult?.statusType === 'ALREADY_CHECKED_IN' ? 'CHECK-IN SEBELUMNYA' : 'STATUS: PEMBAYARAN DITOLAK'}
+              </span>
+              <h4 className="text-base sm:text-lg font-black text-rose-100 mt-0.5 leading-snug px-3">
+                {scannedResult?.statusType === 'FAILED'
+                  ? '“QR tersebut ditolak oleh admin.”'
+                  : scannedResult?.message || '“QR tersebut ditolak oleh admin.”'}
+              </h4>
+
+              {scannedResult?.participant && (
+                <div className="bg-rose-900/80 p-3 rounded-xl border border-rose-700/60 max-w-sm w-full text-left text-xs space-y-1 mt-2.5 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <p className="font-extrabold text-white text-sm">
+                      {scannedResult.participant.name}
+                    </p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/30 text-rose-200 border border-rose-400/40">
+                      {scannedResult.participant.paymentStatus}
+                    </span>
+                  </div>
+                  <p className="text-rose-200 font-mono">NIM: {scannedResult.participant.nim || '-'}</p>
+                  <p className="text-rose-200">
+                    Tiket: <span className="font-bold">{scannedResult.participant.ticketName}</span>
+                  </p>
+                  <p className="text-rose-300 font-mono text-[11px]">
+                    Order ID: {scannedResult.participant.orderId}
+                  </p>
+                </div>
+              )}
+
+              <button
+                onClick={startCamera}
+                className="mt-3.5 px-5 py-2 bg-rose-700 hover:bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer hover:scale-105"
               >
                 <RefreshCw className="w-4 h-4" /> Coba Scan Lagi
               </button>
@@ -496,26 +602,47 @@ export const QRScannerSimulator: React.FC = () => {
       {/* Simulator Quick Action Buttons for Testing without Camera */}
       <div className="mt-4 pt-4 border-t border-slate-100">
         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-          Uji Coba Cepat (Simulator Trigger):
+          Uji Coba Validasi Status (Simulator Trigger):
         </p>
         <div className="flex flex-wrap gap-2">
-          {sampleNotCheckedIn.map((p) => (
+          {samplePaidNotCheckedIn.map((p) => (
             <button
               key={p.id}
               onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
+              className="text-xs px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors font-semibold border border-emerald-300 cursor-pointer"
+              title="Uji coba QR status Pembayaran Berhasil (Popup Hijau)"
             >
-              Scan {p.name.split(' ')[0]} ({p.orderId})
+              🟢 Test Paid ({p.name.split(' ')[0]})
+            </button>
+          ))}
+          {samplePending.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => simulateScan(p.orderId)}
+              className="text-xs px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg transition-colors font-semibold border border-amber-300 cursor-pointer"
+              title="Uji coba QR status Menunggu Konfirmasi (Popup Kuning)"
+            >
+              🟡 Test Pending ({p.name.split(' ')[0]})
+            </button>
+          ))}
+          {sampleFailed.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => simulateScan(p.orderId)}
+              className="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg transition-colors font-semibold border border-rose-300 cursor-pointer"
+              title="Uji coba QR status Pembayaran Tidak Berhasil (Popup Merah)"
+            >
+              🔴 Test Ditolak ({p.name.split(' ')[0]})
             </button>
           ))}
           {sampleCheckedIn.map((p) => (
             <button
               key={p.id}
               onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg transition-colors font-semibold border border-amber-200 cursor-pointer"
-              title="Uji coba scan tiket yang sudah masuk gate sebelumnya"
+              className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
+              title="Uji coba scan tiket yang sudah check-in"
             >
-              Test Duplikat ({p.name.split(' ')[0]})
+              ⚪ Test Duplikat ({p.name.split(' ')[0]})
             </button>
           ))}
         </div>

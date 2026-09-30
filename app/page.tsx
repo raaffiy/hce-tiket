@@ -58,6 +58,7 @@ import {
   findOrderByCode,
   formatRupiah,
 } from "@/utils/seminarData";
+import { QRCodeImage, generateQRCodeDataUrl } from "@/components/ui/QRCodeImage";
 import {
   createOrderInSupabase,
   lookupTicketInSupabase,
@@ -125,6 +126,7 @@ export default function SinglePageSeminar() {
 
   // Lookup / Search Ticket State
   const [searchTicketQuery, setSearchTicketQuery] = useState("");
+  const [isSearchingTicket, setIsSearchingTicket] = useState(false);
   const [lookupTicket, setLookupTicket] = useState<SeminarOrder | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
 
@@ -336,8 +338,8 @@ export default function SinglePageSeminar() {
   const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setErrorMessage("Ukuran file bukti pembayaran maksimal 5MB.");
+      if (file.size > 700 * 1024) {
+        setErrorMessage("Ukuran file bukti pembayaran maksimal 700KB.");
         return;
       }
       setProofFileRaw(file);
@@ -440,12 +442,14 @@ export default function SinglePageSeminar() {
   };
 
   // Dedicated Print E-Ticket PDF Helper
-  const handlePrintTicket = (ticket: SeminarOrder) => {
+  const handlePrintTicket = async (ticket: SeminarOrder) => {
     const printWindow = window.open("", "_blank", "width=850,height=900");
     if (!printWindow) {
       window.print();
       return;
     }
+
+    const qrDataUrl = await generateQRCodeDataUrl(ticket.ticketCode || ticket.orderId, 250);
 
     const isPaid = ticket.paymentStatus === "Pembayaran Berhasil" || ticket.paymentStatus === "Paid";
     const statusBg = isPaid ? "#dcfce7" : "#e0f2fe";
@@ -707,20 +711,7 @@ export default function SinglePageSeminar() {
               </div>
 
               <div class="qr-box">
-                <svg class="qr-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="5" height="5" x="3" y="3" rx="1"/>
-                  <rect width="5" height="5" x="16" y="3" rx="1"/>
-                  <rect width="5" height="5" x="3" y="16" rx="1"/>
-                  <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
-                  <path d="M21 21v.01"/>
-                  <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
-                  <path d="M3 12h.01"/>
-                  <path d="M12 3h.01"/>
-                  <path d="M12 16v.01"/>
-                  <path d="M16 12h1"/>
-                  <path d="M21 12v.01"/>
-                  <path d="M12 21v-1"/>
-                </svg>
+                <img src="${qrDataUrl}" alt="QR Check-In" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 6px; border-radius: 6px;" />
                 <div class="code-label">QR CHECK-IN</div>
                 <div class="code-val">${ticket.ticketCode}</div>
                 <div class="order-sub">Order: ${ticket.orderId}</div>
@@ -775,16 +766,19 @@ export default function SinglePageSeminar() {
     e.preventDefault();
     setLookupMessage(null);
 
-    if (!searchTicketQuery.trim()) {
+    const cleanQuery = searchTicketQuery.trim();
+    if (!cleanQuery) {
       setLookupTicket(null);
       return;
     }
 
+    setIsSearchingTicket(true);
     try {
-      // 1. Search in Supabase
-      const dbMatch = await lookupTicketInSupabase(searchTicketQuery);
+      // 1. Search in Supabase (NIM, Order ID, Email, Name)
+      const dbMatch = await lookupTicketInSupabase(cleanQuery);
       if (dbMatch) {
         setLookupTicket(dbMatch);
+        setIsSearchingTicket(false);
         return;
       }
     } catch (err) {
@@ -792,13 +786,14 @@ export default function SinglePageSeminar() {
     }
 
     // 2. Fallback to local storage
-    const match = findOrderByCode(searchTicketQuery);
+    const match = findOrderByCode(cleanQuery);
     if (match) {
       setLookupTicket(match);
     } else {
       setLookupTicket(null);
-      setLookupMessage(`Tiket dengan kode/email "${searchTicketQuery}" tidak ditemukan dalam database.`);
+      setLookupMessage(`Tiket dengan NIM / Kode / Email "${cleanQuery}" tidak ditemukan dalam database.`);
     }
+    setIsSearchingTicket(false);
   };
 
   return (
@@ -1773,7 +1768,7 @@ export default function SinglePageSeminar() {
                                 Klik untuk upload bukti transfer
                               </span>
                               <span className="text-[10px] text-slate-400 mt-1">
-                                JPG, PNG, WEBP (Maks 5MB)
+                                JPG, PNG, WEBP (Maks 700KB)
                               </span>
                               <input
                                 type="file"
@@ -1931,7 +1926,7 @@ export default function SinglePageSeminar() {
                           </div>
 
                           <div className="bg-slate-50 p-2.5 rounded-xl border-2 border-dashed border-hce-teal/20 text-center flex flex-col items-center justify-center">
-                            <QrCode className="w-16 h-16 text-hce-navy mb-1" />
+                            <QRCodeImage value={activeOrder.ticketCode || activeOrder.orderId} size={80} className="mb-1 bg-white p-1 shadow-xs border border-slate-200" />
                             <span className="text-[9px] text-slate-400 font-bold uppercase">QR Code Check-In</span>
                             <strong className="text-xs font-mono font-black text-hce-teal">{activeOrder.ticketCode}</strong>
                             <span className="text-[9px] text-slate-400 mt-0.5">Gunakan saat check-in gate</span>
@@ -2093,7 +2088,7 @@ export default function SinglePageSeminar() {
               <div className="space-y-5">
                 <div className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-3">
                   <p className="text-xs text-hce-navy/70 leading-relaxed font-medium">
-                    Masukkan <strong>Kode Tiket</strong> (contoh: <span className="font-mono text-hce-teal">SEM-2026-1001</span>), <strong>Order ID</strong>, atau <strong>Alamat Email</strong> yang didaftarkan saat pembelian untuk menemukan dan mencetak E-Ticket Anda.
+                    Masukkan <strong>NIM (Nomor Induk Mahasiswa)</strong>- untuk menemukan dan mencetak E-Ticket Anda.
                   </p>
 
                   <form onSubmit={handleLookupTicket} className="flex gap-2 pt-2">
@@ -2103,15 +2098,23 @@ export default function SinglePageSeminar() {
                         type="text"
                         value={searchTicketQuery}
                         onChange={(e) => setSearchTicketQuery(e.target.value)}
-                        placeholder="Ketik Kode Tiket, Order ID, atau Email..."
+                        placeholder="Ketik NIM (contoh: 1201220001), Kode Tiket, Order ID, atau Email..."
                         className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 focus:border-hce-teal rounded-xl text-xs font-semibold text-hce-navy focus:outline-none focus:bg-white transition-all"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-hce-teal hover:bg-hce-teal/90 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm hover:scale-105"
+                      disabled={isSearchingTicket}
+                      className="px-5 py-2.5 bg-hce-teal hover:bg-hce-teal/90 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm hover:scale-105 flex items-center gap-1.5"
                     >
-                      Cari Tiket
+                      {isSearchingTicket ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Mencari...</span>
+                        </>
+                      ) : (
+                        <span>Cari Tiket</span>
+                      )}
                     </button>
                   </form>
 
@@ -2208,7 +2211,7 @@ export default function SinglePageSeminar() {
                         </div>
 
                         <div className="bg-slate-50 p-2.5 rounded-xl border-2 border-dashed border-hce-teal/20 text-center flex flex-col items-center justify-center">
-                          <QrCode className="w-16 h-16 text-hce-navy mb-1" />
+                          <QRCodeImage value={lookupTicket.ticketCode || lookupTicket.orderId} size={80} className="mb-1 bg-white p-1 shadow-xs border border-slate-200" />
                           <span className="text-[9px] text-slate-400 font-bold uppercase">QR Code Check-In</span>
                           <strong className="text-xs font-mono font-black text-hce-teal">{lookupTicket.ticketCode}</strong>
                           <span className="text-[9px] text-slate-400 mt-0.5">Gunakan saat check-in gate</span>
