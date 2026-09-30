@@ -468,9 +468,6 @@ export const QRScannerSimulator: React.FC = () => {
           {/* ========================================================== */}
           {scannerState === 'success' && (
             <div className="w-full h-full bg-emerald-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-emerald-500">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
               <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">STATUS: PEMBAYARAN BERHASIL</span>
               <h4 className="text-xl font-black text-white mt-0.5">&ldquo;QR berhasil di-scan.&rdquo;</h4>
 
@@ -511,9 +508,6 @@ export const QRScannerSimulator: React.FC = () => {
           {/* ========================================================== */}
           {scannerState === 'pending' && (
             <div className="w-full h-full bg-amber-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-amber-500">
-              <div className="w-14 h-14 rounded-full bg-amber-500/20 text-amber-400 border-2 border-amber-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-                <Clock className="w-8 h-8" />
-              </div>
               <span className="text-[11px] font-black uppercase tracking-widest text-amber-400">STATUS: MENUNGGU KONFIRMASI</span>
               <h4 className="text-base sm:text-lg font-black text-amber-100 mt-0.5 leading-snug px-3">
                 &ldquo;QR tidak bisa di-scan karena belum dikonfirmasi oleh admin.&rdquo;
@@ -556,9 +550,6 @@ export const QRScannerSimulator: React.FC = () => {
           {/* ========================================================== */}
           {scannerState === 'failed' && (
             <div className="w-full h-full bg-rose-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-rose-500">
-              <div className="w-14 h-14 rounded-full bg-rose-500/20 text-rose-400 border-2 border-rose-500 flex items-center justify-center mb-2 shadow-[0_0_15px_rgba(244,63,94,0.4)]">
-                <XCircle className="w-8 h-8" />
-              </div>
               <span className="text-[11px] font-black uppercase tracking-widest text-rose-400">
                 {scannedResult?.statusType === 'ALREADY_CHECKED_IN' ? 'CHECK-IN SEBELUMNYA' : 'STATUS: PEMBAYARAN DITOLAK'}
               </span>
