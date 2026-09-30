@@ -598,55 +598,6 @@ export const QRScannerSimulator: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Simulator Quick Action Buttons for Testing without Camera */}
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-          Uji Coba Validasi Status (Simulator Trigger):
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {samplePaidNotCheckedIn.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg transition-colors font-semibold border border-emerald-300 cursor-pointer"
-              title="Uji coba QR status Pembayaran Berhasil (Popup Hijau)"
-            >
-              🟢 Test Paid ({p.name.split(' ')[0]})
-            </button>
-          ))}
-          {samplePending.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg transition-colors font-semibold border border-amber-300 cursor-pointer"
-              title="Uji coba QR status Menunggu Konfirmasi (Popup Kuning)"
-            >
-              🟡 Test Pending ({p.name.split(' ')[0]})
-            </button>
-          ))}
-          {sampleFailed.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 rounded-lg transition-colors font-semibold border border-rose-300 cursor-pointer"
-              title="Uji coba QR status Pembayaran Tidak Berhasil (Popup Merah)"
-            >
-              🔴 Test Ditolak ({p.name.split(' ')[0]})
-            </button>
-          ))}
-          {sampleCheckedIn.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => simulateScan(p.orderId)}
-              className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-semibold border border-slate-200 cursor-pointer"
-              title="Uji coba scan tiket yang sudah check-in"
-            >
-              ⚪ Test Duplikat ({p.name.split(' ')[0]})
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
