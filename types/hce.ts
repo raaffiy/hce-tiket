@@ -44,6 +44,9 @@ export interface Participant {
   checkInStatus: CheckInStatus;
   checkInTime?: string;
   checkedInMethod?: CheckInMethod;
+  emailStatus?: 'Sent' | 'Failed' | 'Pending';
+  emailSentAt?: string;
+  certificateStatus?: string;
   registeredAt: string;
 }
 
@@ -54,6 +57,9 @@ export interface Transaction {
   participantName: string;
   nim: string;
   email: string;
+  whatsapp?: string;
+  faculty?: string;
+  prodi?: string;
   ticketId: string;
   ticketName: string;
   ticketType: TicketType;
@@ -62,6 +68,9 @@ export interface Transaction {
   paymentProof?: string;
   checkInStatus: CheckInStatus;
   paymentMethod: string;
+  emailStatus?: 'Sent' | 'Failed' | 'Pending';
+  emailSentAt?: string;
+  certificateStatus?: string;
   lastUpdated: string;
 }
 

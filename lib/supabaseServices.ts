@@ -142,6 +142,9 @@ export function mapParticipantFromDB(row: any): Participant {
     checkInStatus: row.check_in_status || 'Not Checked In',
     checkInTime: row.check_in_time || undefined,
     checkedInMethod: row.checked_in_method || undefined,
+    emailStatus: row.email_status || 'Pending',
+    emailSentAt: row.email_sent_at || undefined,
+    certificateStatus: row.certificate_status || 'Tersedia Setelah Acara Selesai (SKP Resmi)',
     registeredAt: row.registered_at || new Date().toISOString(),
   };
 }
@@ -165,6 +168,9 @@ export function mapParticipantToDB(p: Partial<Participant>): any {
   if (p.checkInStatus !== undefined) row.check_in_status = p.checkInStatus;
   if (p.checkInTime !== undefined) row.check_in_time = p.checkInTime;
   if (p.checkedInMethod !== undefined) row.checked_in_method = p.checkedInMethod;
+  if (p.emailStatus !== undefined) row.email_status = p.emailStatus;
+  if (p.emailSentAt !== undefined) row.email_sent_at = p.emailSentAt;
+  if (p.certificateStatus !== undefined) row.certificate_status = p.certificateStatus;
   if (p.registeredAt !== undefined) row.registered_at = p.registeredAt;
   return row;
 }
@@ -216,6 +222,9 @@ export function mapTransactionFromDB(row: any): Transaction {
     participantName: row.participant_name || '',
     nim: row.nim || '',
     email: row.email || '',
+    whatsapp: row.whatsapp || '',
+    faculty: row.faculty || '',
+    prodi: row.prodi || '',
     ticketId: row.ticket_id || '',
     ticketName: row.ticket_name || '',
     ticketType: row.ticket_type || 'PAID',
@@ -224,6 +233,9 @@ export function mapTransactionFromDB(row: any): Transaction {
     paymentProof: row.payment_proof || undefined,
     checkInStatus: row.check_in_status || 'Not Checked In',
     paymentMethod: row.payment_method || 'QRIS Instant',
+    emailStatus: row.email_status || 'Pending',
+    emailSentAt: row.email_sent_at || undefined,
+    certificateStatus: row.certificate_status || 'Tersedia Setelah Acara Selesai (SKP Resmi)',
     lastUpdated: row.last_updated || new Date().toISOString(),
   };
 }
@@ -236,6 +248,9 @@ export function mapTransactionToDB(tx: Partial<Transaction>): any {
   if (tx.participantName !== undefined) row.participant_name = tx.participantName;
   if (tx.nim !== undefined) row.nim = tx.nim;
   if (tx.email !== undefined) row.email = tx.email;
+  if (tx.whatsapp !== undefined) row.whatsapp = tx.whatsapp;
+  if (tx.faculty !== undefined) row.faculty = tx.faculty;
+  if (tx.prodi !== undefined) row.prodi = tx.prodi;
   if (tx.ticketId !== undefined) row.ticket_id = tx.ticketId;
   if (tx.ticketName !== undefined) row.ticket_name = tx.ticketName;
   if (tx.ticketType !== undefined) row.ticket_type = tx.ticketType;
@@ -244,6 +259,9 @@ export function mapTransactionToDB(tx: Partial<Transaction>): any {
   if (tx.paymentProof !== undefined) row.payment_proof = tx.paymentProof;
   if (tx.checkInStatus !== undefined) row.check_in_status = tx.checkInStatus;
   if (tx.paymentMethod !== undefined) row.payment_method = tx.paymentMethod;
+  if (tx.emailStatus !== undefined) row.email_status = tx.emailStatus;
+  if (tx.emailSentAt !== undefined) row.email_sent_at = tx.emailSentAt;
+  if (tx.certificateStatus !== undefined) row.certificate_status = tx.certificateStatus;
   if (tx.lastUpdated !== undefined) row.last_updated = tx.lastUpdated;
   return row;
 }
@@ -789,6 +807,7 @@ const authSignupClient = createClient(
     auth: {
       persistSession: false,
       autoRefreshToken: false,
+      storageKey: 'sb-auth-signup-isolated',
     },
   }
 );

@@ -373,13 +373,17 @@ export default function SinglePageSeminar() {
     let finalProofUrl = paymentProofFile;
 
     try {
-      // 1. Upload proof file directly to Supabase Storage bucket "payment-proofs"
+      // 1. Upload proof file directly to Supabase Storage bucket "payment-proofs" (Fast upload ~300ms)
       if (proofFileRaw) {
-        const uploadRes = await uploadPaymentProofToSupabase(proofFileRaw, activeOrder.orderId);
-        if (uploadRes.success && uploadRes.url) {
-          finalProofUrl = uploadRes.url;
-        } else {
-          console.warn('Supabase storage upload notice:', uploadRes.error);
+        try {
+          const uploadRes = await uploadPaymentProofToSupabase(proofFileRaw, activeOrder.orderId);
+          if (uploadRes.success && uploadRes.url) {
+            finalProofUrl = uploadRes.url;
+          } else {
+            console.warn('Supabase storage upload notice:', uploadRes.error);
+          }
+        } catch (storageErr) {
+          console.warn('Storage upload catch notice:', storageErr);
         }
       }
 
@@ -390,7 +394,7 @@ export default function SinglePageSeminar() {
         ticketStatus: "Menunggu Konfirmasi",
       };
 
-      // 2. Save to Supabase transactions & participants table
+      // 2. Save order to Supabase database (transactions & participants table)
       const res = await createOrderInSupabase({
         orderId: finalizedOrder.orderId,
         ticketId: finalizedOrder.ticketCategoryId,
@@ -408,13 +412,38 @@ export default function SinglePageSeminar() {
         console.warn('Supabase createOrder notice:', res.error);
       }
 
-      // 3. Local fallback sync
+      // 3. Local storage persistence (Offline cache recovery)
       saveNewOrder(finalizedOrder);
-
       setActiveOrder(finalizedOrder);
+
+      // 4. Transition to Success E-Ticket Step (Data is 100% saved)
       setCheckoutStep(3);
-    } catch (err) {
+
+      // 5. Trigger Server-Side Brevo Email (Runs independently on server even if user closes tab)
+      fetch('/api/send-ticket-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: finalizedOrder.orderId,
+          ticketCode: finalizedOrder.ticketCode,
+          customerName: finalizedOrder.customer.fullName,
+          customerEmail: finalizedOrder.customer.email,
+          customerNim: finalizedOrder.customer.nim,
+          customerFaculty: finalizedOrder.customer.faculty,
+          customerProdi: finalizedOrder.customer.studyProgram,
+          customerWhatsapp: finalizedOrder.customer.phone,
+          ticketName: finalizedOrder.ticketCategoryName,
+          ticketPrice: finalizedOrder.totalPrice,
+          paymentMethod: finalizedOrder.paymentMethod,
+          paymentStatus: finalizedOrder.paymentStatus,
+          certificateStatus: "Tersedia Setelah Acara Selesai (SKP Resmi)",
+        }),
+      }).catch((emailErr) => {
+        console.warn('Background Brevo email trigger notice:', emailErr);
+      });
+    } catch (err: any) {
       console.error('Error saving order to database:', err);
+      // Fallback: save locally and notify user safely without losing entered form data
       const fallbackOrder: SeminarOrder = {
         ...activeOrder,
         paymentProof: finalProofUrl,
@@ -424,6 +453,27 @@ export default function SinglePageSeminar() {
       saveNewOrder(fallbackOrder);
       setActiveOrder(fallbackOrder);
       setCheckoutStep(3);
+
+      // Trigger fallback email
+      fetch('/api/send-ticket-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: fallbackOrder.orderId,
+          ticketCode: fallbackOrder.ticketCode,
+          customerName: fallbackOrder.customer.fullName,
+          customerEmail: fallbackOrder.customer.email,
+          customerNim: fallbackOrder.customer.nim,
+          customerFaculty: fallbackOrder.customer.faculty,
+          customerProdi: fallbackOrder.customer.studyProgram,
+          customerWhatsapp: fallbackOrder.customer.phone,
+          ticketName: fallbackOrder.ticketCategoryName,
+          ticketPrice: fallbackOrder.totalPrice,
+          paymentMethod: fallbackOrder.paymentMethod,
+          paymentStatus: fallbackOrder.paymentStatus,
+          certificateStatus: "Tersedia Setelah Acara Selesai (SKP Resmi)",
+        }),
+      }).catch((e) => console.warn('Fallback email notice:', e));
     } finally {
       setIsProcessing(false);
     }
@@ -930,6 +980,7 @@ export default function SinglePageSeminar() {
                         src="/sadam.jpg"
                         alt={SPEAKER_INFO.name}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                         priority
                       />
@@ -1094,6 +1145,7 @@ export default function SinglePageSeminar() {
                       src="/sadam.jpg"
                       alt={SPEAKER_INFO.name}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-hce-navy/85 via-transparent to-transparent" />

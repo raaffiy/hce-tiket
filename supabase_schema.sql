@@ -290,5 +290,24 @@ FOR UPDATE USING (bucket_id = 'payment-proofs');
 CREATE POLICY "Allow Delete Payment Proofs" ON storage.objects
 FOR DELETE USING (bucket_id = 'payment-proofs');
 
+-- ============================================================
+-- 9. BREVO AUTOMATED EMAIL & CERTIFICATE TRACKING (SQL MIGRATION)
+-- ============================================================
+-- Jalankan bagian ini di Supabase SQL Editor untuk menambahkan field tracking email Brevo:
+
+ALTER TABLE public.transactions
+ADD COLUMN IF NOT EXISTS email_status TEXT DEFAULT 'Pending',
+ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS certificate_status TEXT DEFAULT 'Tersedia Setelah Acara Selesai (SKP Resmi)';
+
+ALTER TABLE public.participants
+ADD COLUMN IF NOT EXISTS email_status TEXT DEFAULT 'Pending',
+ADD COLUMN IF NOT EXISTS email_sent_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS certificate_status TEXT DEFAULT 'Tersedia Setelah Acara Selesai (SKP Resmi)';
+
+-- Index untuk mempercepat query status email
+CREATE INDEX IF NOT EXISTS idx_transactions_email_status ON public.transactions(email_status);
+CREATE INDEX IF NOT EXISTS idx_participants_email_status ON public.participants(email_status);
+
 
 

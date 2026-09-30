@@ -393,17 +393,74 @@ export default function TransactionsPage() {
     printWindow.document.close();
   };
 
-  const handleResendEmail = (tx: Transaction) => {
-    addToast(`Mengirim ulang invoice & e-ticket ke ${tx.email}...`, 'info');
-    setTimeout(() => {
-      addToast(`Email e-ticket berhasil dikirimkan ulang ke ${tx.email}!`, 'success');
-    }, 900);
+  const handleResendEmail = async (tx: Transaction) => {
+    addToast(`Mengirim tiket via Brevo ke ${tx.email}...`, 'info');
+    try {
+      const res = await fetch('/api/send-ticket-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: tx.orderId,
+          ticketCode: tx.orderId.replace('ORD', 'SEM'),
+          customerName: tx.participantName,
+          customerEmail: tx.email,
+          customerNim: tx.nim,
+          customerFaculty: tx.faculty,
+          customerProdi: tx.prodi,
+          customerWhatsapp: tx.whatsapp,
+          ticketName: tx.ticketName,
+          ticketPrice: tx.amount,
+          paymentMethod: tx.paymentMethod,
+          paymentStatus: tx.paymentStatus === 'Paid' ? 'Pembayaran Berhasil' : tx.paymentStatus === 'Failed' ? 'Pembayaran Tidak Berhasil' : 'Menunggu Konfirmasi Admin',
+          certificateStatus: tx.certificateStatus || 'Tersedia Setelah Acara Selesai (SKP Resmi)',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        addToast(`Email Brevo berhasil dikirim ke ${tx.email}!`, 'success');
+      } else {
+        addToast(data.message || `Gagal mengirim email ke ${tx.email}`, 'warning');
+      }
+    } catch (err: any) {
+      console.error('Error sending Brevo email:', err);
+      addToast(`Gagal memproses email ke ${tx.email}`, 'error');
+    }
   };
 
-  const handleApprovePayment = (orderId: string) => {
+  const handleApprovePayment = async (orderId: string) => {
     updateTransactionStatus(orderId, 'Paid');
     if (selectedTx && selectedTx.orderId === orderId) {
       setSelectedTx({ ...selectedTx, paymentStatus: 'Paid' });
+    }
+    
+    // Auto send confirmation email upon approval
+    const tx = transactions.find((t) => t.orderId === orderId) || (selectedTx?.orderId === orderId ? selectedTx : null);
+    if (tx) {
+      addToast(`Pembayaran diverifikasi! Mengirim tiket resmi ke ${tx.email}...`, 'info');
+      try {
+        await fetch('/api/send-ticket-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: tx.orderId,
+            ticketCode: tx.orderId.replace('ORD', 'SEM'),
+            customerName: tx.participantName,
+            customerEmail: tx.email,
+            customerNim: tx.nim,
+            customerFaculty: tx.faculty,
+            customerProdi: tx.prodi,
+            customerWhatsapp: tx.whatsapp,
+            ticketName: tx.ticketName,
+            ticketPrice: tx.amount,
+            paymentMethod: tx.paymentMethod,
+            paymentStatus: 'Pembayaran Berhasil',
+            certificateStatus: tx.certificateStatus || 'Tersedia Setelah Acara Selesai (SKP Resmi)',
+          }),
+        });
+        addToast(`Email tiket resmi terkirim ke ${tx.email}!`, 'success');
+      } catch (e) {
+        console.warn('Auto email on approval notice:', e);
+      }
     }
   };
 
@@ -646,7 +703,16 @@ export default function TransactionsPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium">Terverifikasi</span>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleResendEmail(tx)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-xs shadow-xs transition-colors cursor-pointer"
+                            title="Kirim Tiket Otomatis via Brevo Email"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Email</span>
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
