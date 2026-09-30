@@ -41,6 +41,11 @@ import {
   fetchActivitiesFromSupabase,
   recordActivityInSupabase,
 } from '@/lib/supabaseServices';
+import {
+  exportParticipantsToExcel,
+  exportTransactionsToExcel,
+  exportToCleanCSV,
+} from '@/lib/exportUtils';
 
 export interface ToastMessage {
   id: string;
@@ -139,6 +144,8 @@ interface HCEAppContextType {
   // Helpers
   exportParticipantsCSV: () => void;
   exportTransactionsCSV: () => void;
+  exportParticipantsExcel: () => Promise<void>;
+  exportTransactionsExcel: () => Promise<void>;
 }
 
 const HCEAppContext = createContext<HCEAppContextType | undefined>(undefined);
@@ -666,8 +673,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!target) return;
     setParticipants((prev) => prev.filter((p) => p.id !== id));
     setTransactions((prev) => prev.filter((tx) => tx.orderId !== target.orderId));
-    await deleteParticipantInSupabase(id, target.orderId);
-    addToast(`Peserta ${target.name} telah dihapus dari database.`, 'info');
+    await deleteParticipantInSupabase(id, target.orderId, target.paymentProof);
+    addToast(`Peserta ${target.name} dan bukti pembayaran telah dihapus bersih.`, 'info');
   };
 
   const updateTransactionStatus = async (orderId: string, status: PaymentStatus) => {
@@ -799,9 +806,22 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     addToast('Sponsor dihapus.', 'info');
   };
 
-  // CSV Exporters
+  // Exporters (Excel & Clean CSV with Formatted Tables)
+  const exportParticipantsExcel = async () => {
+    try {
+      addToast('Menyiapkan file Excel Data Peserta...', 'info');
+      await exportParticipantsToExcel(participants);
+      addToast('Data peserta berhasil di-export ke Excel (.xlsx) dengan format tabel rapi!', 'success');
+    } catch (err: any) {
+      console.error('Export participants excel error:', err);
+      addToast('Gagal mengekspor Excel, mengunduh format CSV...', 'warning');
+      exportParticipantsCSV();
+    }
+  };
+
   const exportParticipantsCSV = () => {
     const headers = [
+      'No',
       'Order ID',
       'Nama Lengkap',
       'NIM',
@@ -819,41 +839,48 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       'Tanggal Registrasi'
     ];
 
-    const rows = participants.map((p) => [
-      `"${p.orderId}"`,
-      `"${p.name.replace(/"/g, '""')}"`,
-      `"${p.nim}"`,
-      `"${p.email}"`,
-      `"${p.whatsapp}"`,
-      `"${p.faculty}"`,
-      `"${p.prodi}"`,
-      `"${p.ticketName}"`,
-      `"${p.ticketType}"`,
-      p.price,
-      `"${p.paymentStatus}"`,
-      `"${p.checkInStatus}"`,
-      `"${p.checkInTime || '-'}"`,
-      `"${p.checkedInMethod || '-'}"`,
-      `"${p.registeredAt}"`
+    const rows = participants.map((p, idx) => [
+      idx + 1,
+      p.orderId || '-',
+      p.name || '-',
+      p.nim || '-',
+      p.email || '-',
+      p.whatsapp || '-',
+      p.faculty || '-',
+      p.prodi || '-',
+      p.ticketName || '-',
+      p.ticketType || 'PAID',
+      p.price || 0,
+      p.paymentStatus === 'Paid' ? 'Pembayaran Berhasil' : p.paymentStatus === 'Pending' ? 'Menunggu Konfirmasi' : 'Pembayaran Gagal',
+      p.checkInStatus || 'Not Checked In',
+      p.checkInTime || '-',
+      p.checkedInMethod || '-',
+      p.registeredAt ? p.registeredAt.split('T')[0] : '-'
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `HCE_Participants_Export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportToCleanCSV(`HCE_MasterData_Peserta_${dateStr}`, headers, rows);
+    addToast('Data peserta berhasil di-export ke CSV terformat.', 'success');
+  };
 
-    addToast('Data peserta berhasil di-export ke CSV.', 'success');
+  const exportTransactionsExcel = async () => {
+    try {
+      addToast('Menyiapkan file Excel Data Transaksi...', 'info');
+      await exportTransactionsToExcel(transactions);
+      addToast('Data transaksi berhasil di-export ke Excel (.xlsx) dengan format tabel rapi!', 'success');
+    } catch (err: any) {
+      console.error('Export transactions excel error:', err);
+      addToast('Gagal mengekspor Excel, mengunduh format CSV...', 'warning');
+      exportTransactionsCSV();
+    }
   };
 
   const exportTransactionsCSV = () => {
     const headers = [
+      'No',
       'Order ID',
       'Tanggal Transaksi',
-      'Nama Peserta',
+      'Nama Pembeli',
       'NIM',
       'Email',
       'Tiket',
@@ -861,35 +888,27 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       'Nominal (IDR)',
       'Metode Pembayaran',
       'Status Pembayaran',
-      'Status Check-In',
-      'Terakhir Diperbarui'
+      'Status Check-In'
     ];
 
-    const rows = transactions.map((t) => [
-      `"${t.orderId}"`,
-      `"${t.orderDate}"`,
-      `"${t.participantName.replace(/"/g, '""')}"`,
-      `"${t.nim}"`,
-      `"${t.email}"`,
-      `"${t.ticketName}"`,
-      `"${t.ticketType}"`,
-      t.amount,
-      `"${t.paymentMethod}"`,
-      `"${t.paymentStatus}"`,
-      `"${t.checkInStatus}"`,
-      `"${t.lastUpdated}"`
+    const rows = transactions.map((t, idx) => [
+      idx + 1,
+      t.orderId || '-',
+      t.orderDate ? t.orderDate.split('T')[0] : '-',
+      t.participantName || '-',
+      t.nim || '-',
+      t.email || '-',
+      t.ticketName || '-',
+      t.ticketType || 'PAID',
+      t.amount || 0,
+      t.paymentMethod || 'QRIS Instant',
+      t.paymentStatus === 'Paid' ? 'Pembayaran Berhasil' : t.paymentStatus === 'Pending' ? 'Menunggu Konfirmasi' : 'Pembayaran Gagal',
+      t.checkInStatus || 'Not Checked In'
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `HCE_Transactions_Export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    addToast('Data transaksi berhasil di-export ke CSV.', 'success');
+    const dateStr = new Date().toISOString().split('T')[0];
+    exportToCleanCSV(`HCE_Transactions_Report_${dateStr}`, headers, rows);
+    addToast('Data transaksi berhasil di-export ke CSV terformat.', 'success');
   };
 
   return (
@@ -929,6 +948,8 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         deleteSponsor,
         exportParticipantsCSV,
         exportTransactionsCSV,
+        exportParticipantsExcel,
+        exportTransactionsExcel,
       }}
     >
       {children}

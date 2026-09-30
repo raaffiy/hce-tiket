@@ -237,14 +237,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-
-            <Link
-              href="/admin/check-in"
-              className="w-full py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-colors shadow-2xs"
-            >
-              <QrCode className="w-4 h-4" />
-              Buka Scanner QR & Check-In
-            </Link>
           </div>
 
           {/* Live Activity Stream */}

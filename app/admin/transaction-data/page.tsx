@@ -38,6 +38,7 @@ export default function MasterDataPage() {
     updateParticipantAndTransaction,
     deleteParticipant,
     exportParticipantsCSV,
+    exportParticipantsExcel,
   } = useHCEApp();
 
   // Search and Filters
@@ -197,13 +198,16 @@ export default function MasterDataPage() {
           </p>
         </div>
 
-        <button
-          onClick={exportParticipantsCSV}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
-        >
-          <Download className="w-4 h-4" />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={exportParticipantsExcel}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+            title="Download Laporan Resmi Excel (.xlsx) dengan Format Tabel Berwarna & Rapi"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+            <span>Export Excel (.xlsx)</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary StatCards */}

@@ -20,6 +20,7 @@ import {
   DollarSign,
   Eye,
   Download,
+  FileSpreadsheet,
   Printer,
   FileDown,
   Send,
@@ -30,7 +31,14 @@ import {
 } from 'lucide-react';
 
 export default function TransactionsPage() {
-  const { transactions, stats, exportTransactionsCSV, updateTransactionStatus, addToast } = useHCEApp();
+  const {
+    transactions,
+    stats,
+    exportTransactionsCSV,
+    exportTransactionsExcel,
+    updateTransactionStatus,
+    addToast,
+  } = useHCEApp();
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -482,13 +490,14 @@ export default function TransactionsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
-            onClick={exportTransactionsCSV}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-colors"
+            onClick={exportTransactionsExcel}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1A5E61] hover:bg-[#134648] text-white text-xs lg:text-sm font-semibold rounded-xl shadow-xs transition-all cursor-pointer"
+            title="Download Laporan Resmi Excel (.xlsx) dengan Format Tabel Berwarna & Rapi"
           >
-            <Download className="w-4 h-4 text-[#1A5E61]" />
-            Export CSV
+            <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+            <span>Export Excel (.xlsx)</span>
           </button>
         </div>
       </div>

@@ -193,16 +193,68 @@ export async function fetchParticipantsFromSupabase(): Promise<Participant[]> {
   }
 }
 
-export async function deleteParticipantInSupabase(id: string, orderId?: string): Promise<boolean> {
+export async function deleteParticipantInSupabase(
+  id: string,
+  orderId?: string,
+  paymentProofUrl?: string
+): Promise<boolean> {
   try {
+    // 1. Delete physical payment proof file(s) from Supabase Storage bucket 'payment-proofs'
+    try {
+      const filesToDelete: string[] = [];
+
+      // Extract filename from URL if provided
+      if (paymentProofUrl && paymentProofUrl.includes('/payment-proofs/')) {
+        const parts = paymentProofUrl.split('/payment-proofs/');
+        if (parts.length > 1) {
+          const directFile = decodeURIComponent(parts[1].split('?')[0]);
+          if (directFile) filesToDelete.push(directFile);
+        }
+      }
+
+      // Also search bucket for any files tagged with this orderId
+      if (orderId) {
+        const cleanOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, '');
+        const { data: fileList } = await supabase.storage
+          .from('payment-proofs')
+          .list('', { search: cleanOrderId });
+
+        if (fileList && fileList.length > 0) {
+          fileList.forEach((f) => {
+            if (f.name && !filesToDelete.includes(f.name)) {
+              filesToDelete.push(f.name);
+            }
+          });
+        }
+      }
+
+      if (filesToDelete.length > 0) {
+        const { error: storageDelErr } = await supabase.storage
+          .from('payment-proofs')
+          .remove(filesToDelete);
+
+        if (storageDelErr) {
+          console.warn('Storage proof deletion notice:', storageDelErr.message);
+        } else {
+          console.log(`[Storage Cleanup] Successfully removed payment proof:`, filesToDelete);
+        }
+      }
+    } catch (storageErr) {
+      console.warn('Storage cleanup exception notice:', storageErr);
+    }
+
+    // 2. Delete participant record
     const { error: partErr } = await supabase.from('participants').delete().eq('id', id);
     if (partErr) {
       console.error('Supabase deleteParticipant error:', partErr.message);
       return false;
     }
+
+    // 3. Delete related transaction record
     if (orderId) {
       await supabase.from('transactions').delete().eq('order_id', orderId);
     }
+
     return true;
   } catch (err) {
     console.error('Supabase deleteParticipant exception:', err);
