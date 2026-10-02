@@ -260,9 +260,12 @@ export default function SinglePageSeminar() {
       try {
         const dbTickets = await fetchTicketsFromSupabase();
         if (dbTickets && dbTickets.length > 0) {
-          // Check if user came with a private ticket link or code in URL params
+          // Check if user came with a private ticket link or code in URL params or path
           const urlParams = new URLSearchParams(window.location.search);
-          const ticketParam = (urlParams.get('ticket') || urlParams.get('private') || urlParams.get('code') || '').trim();
+          const pathParam = typeof window !== 'undefined' && window.location.pathname.startsWith('/t/')
+            ? window.location.pathname.replace(/^\/t\//, '')
+            : '';
+          const ticketParam = (urlParams.get('ticket') || urlParams.get('private') || urlParams.get('code') || pathParam || '').trim();
 
           // Helper to match ticket by ID, code, or private link
           const isMatch = (t: HCETicket, param: string) => {
@@ -274,11 +277,16 @@ export default function SinglePageSeminar() {
             return idMatch || nameMatch || linkMatch;
           };
 
+          const matchedPrivateTicket = ticketParam ? dbTickets.find((t) => isMatch(t, ticketParam)) : null;
+
           const mapped: TicketCategory[] = dbTickets
             .filter((t) => {
               if (t.status === 'Archived') return false;
+              // Jika user membuka melalui private link/parameter, HANYA tampilkan tiket tersebut
+              if (matchedPrivateTicket) {
+                return t.id === matchedPrivateTicket.id;
+              }
               if (t.visibility === 'PUBLIC') return true;
-              if (ticketParam && isMatch(t, ticketParam)) return true;
               return false;
             })
             .map((t) => {
@@ -326,19 +334,13 @@ export default function SinglePageSeminar() {
           if (mapped.length > 0) {
             setCategories(mapped);
 
-            if (ticketParam) {
-              const matchedTicket = dbTickets.find((t) => isMatch(t, ticketParam));
-              const matchedCategory = matchedTicket ? mapped.find((m) => m.id === matchedTicket.id) : null;
-
-              if (matchedCategory) {
-                setSelectedCategory(matchedCategory);
-                setCheckoutStep(1);
-                setErrorMessage(null);
-                setShowConfirmModal(false);
-                setIsOrderModalOpen(true);
-              } else {
-                setSelectedCategory(mapped[0]);
-              }
+            if (matchedPrivateTicket) {
+              const matchedCategory = mapped.find((m) => m.id === matchedPrivateTicket.id) || mapped[0];
+              setSelectedCategory(matchedCategory);
+              setCheckoutStep(1);
+              setErrorMessage(null);
+              setShowConfirmModal(false);
+              setIsOrderModalOpen(true);
             } else {
               setSelectedCategory((prev) => mapped.find((m) => m.id === prev.id) || mapped[0]);
             }
@@ -1629,7 +1631,7 @@ export default function SinglePageSeminar() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className={categories.length === 1 ? "grid grid-cols-1 sm:grid-cols-2 max-w-lg gap-2.5" : "grid grid-cols-1 sm:grid-cols-3 gap-2.5"}>
                         {categories.map((cat) => {
                           const isSelected = selectedCategory.id === cat.id;
                           return (
