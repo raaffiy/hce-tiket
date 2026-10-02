@@ -196,9 +196,42 @@ export async function fetchParticipantsFromSupabase(): Promise<Participant[]> {
 export async function deleteParticipantInSupabase(
   id: string,
   orderId?: string,
-  paymentProofUrl?: string
+  paymentProofUrl?: string,
+  ticketId?: string,
+  quantity: number = 1
 ): Promise<boolean> {
   try {
+    // 0. Pre-lookup ticket ID and quantity if not directly supplied
+    let targetTicketId = ticketId;
+    let targetQty = quantity || 1;
+
+    try {
+      if (!targetTicketId) {
+        const { data: part } = await supabase
+          .from('participants')
+          .select('ticket_id')
+          .eq('id', id)
+          .maybeSingle();
+        if (part?.ticket_id) {
+          targetTicketId = part.ticket_id;
+        }
+      }
+
+      if (orderId && (!targetTicketId || targetQty === 1)) {
+        const { data: tx } = await supabase
+          .from('transactions')
+          .select('quantity, ticket_id')
+          .eq('order_id', orderId)
+          .maybeSingle();
+        if (tx) {
+          if (tx.quantity) targetQty = Number(tx.quantity) || 1;
+          if (!targetTicketId && tx.ticket_id) targetTicketId = tx.ticket_id;
+        }
+      }
+    } catch (lookupErr) {
+      console.warn('Pre-delete ticket info lookup notice:', lookupErr);
+    }
+
     // 1. Delete physical payment proof file(s) from Supabase Storage bucket 'payment-proofs'
     try {
       const filesToDelete: string[] = [];
@@ -253,6 +286,38 @@ export async function deleteParticipantInSupabase(
     // 3. Delete related transaction record
     if (orderId) {
       await supabase.from('transactions').delete().eq('order_id', orderId);
+    }
+
+    // 4. Restore ticket quota / quantity in Supabase tickets table
+    if (targetTicketId) {
+      try {
+        const { data: tck } = await supabase
+          .from('tickets')
+          .select('id, sold, quota, remaining, status')
+          .eq('id', targetTicketId)
+          .maybeSingle();
+
+        if (tck) {
+          const currentSold = Number(tck.sold) || 0;
+          const quota = Number(tck.quota) || 0;
+          const newSold = Math.max(0, currentSold - targetQty);
+          const newRemaining = Math.min(quota, Math.max(0, quota - newSold));
+          const newStatus = newRemaining > 0 && tck.status === 'Sold Out' ? 'Active' : tck.status;
+
+          await supabase
+            .from('tickets')
+            .update({
+              sold: newSold,
+              remaining: newRemaining,
+              status: newStatus,
+            })
+            .eq('id', targetTicketId);
+
+          console.log(`[Ticket Restored] Ticket ${targetTicketId} quota restored (+${targetQty}). Sold: ${newSold}, Remaining: ${newRemaining}`);
+        }
+      } catch (tckErr) {
+        console.warn('Ticket stock restoration notice:', tckErr);
+      }
     }
 
     return true;
@@ -725,6 +790,9 @@ export async function createOrderInSupabase(payload: CreateOrderPayload): Promis
     const participantId = 'PART-' + Date.now().toString().slice(-6);
     const nowIso = new Date().toISOString();
 
+    const isFree = payload.ticketType === 'FREE' || payload.ticketPrice === 0 || payload.totalPrice === 0;
+    const initialPaymentStatus = isFree ? 'Paid' : 'Pending';
+
     // 1. Create Transaction row
     const transactionRow = {
       order_id: payload.orderId,
@@ -738,12 +806,12 @@ export async function createOrderInSupabase(payload: CreateOrderPayload): Promis
       study_program: payload.customer.studyProgram,
       ticket_id: payload.ticketId,
       ticket_name: payload.ticketName,
-      ticket_type: payload.ticketType,
+      ticket_type: isFree ? 'FREE' : payload.ticketType || 'PAID',
       amount: payload.totalPrice,
       quantity: payload.quantity,
-      payment_method: payload.paymentMethod,
-      payment_status: 'Pending',
-      payment_proof: payload.paymentProof || null,
+      payment_method: isFree ? 'Complimentary / Free Pass' : payload.paymentMethod,
+      payment_status: initialPaymentStatus,
+      payment_proof: payload.paymentProof || (isFree ? 'FREE_PASS' : null),
       check_in_status: 'Not Checked In',
       last_updated: nowIso,
     };
@@ -766,10 +834,10 @@ export async function createOrderInSupabase(payload: CreateOrderPayload): Promis
       prodi: payload.customer.studyProgram,
       ticket_id: payload.ticketId,
       ticket_name: payload.ticketName,
-      ticket_type: payload.ticketType,
+      ticket_type: isFree ? 'FREE' : payload.ticketType || 'PAID',
       price: payload.ticketPrice,
-      payment_status: 'Pending',
-      payment_proof: payload.paymentProof || null,
+      payment_status: initialPaymentStatus,
+      payment_proof: payload.paymentProof || (isFree ? 'FREE_PASS' : null),
       check_in_status: 'Not Checked In',
       registered_at: nowIso,
     };

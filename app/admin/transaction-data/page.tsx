@@ -277,7 +277,6 @@ export default function MasterDataPage() {
               { value: 'Paid', label: 'Pembayaran Berhasil (Paid)' },
               { value: 'Pending', label: 'Menunggu Konfirmasi (Pending)' },
               { value: 'Failed', label: 'Pembayaran Gagal (Failed)' },
-              { value: 'Refunded', label: 'Refunded' },
             ]}
           />
         </div>

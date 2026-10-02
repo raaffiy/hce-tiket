@@ -233,6 +233,27 @@ export default function SinglePageSeminar() {
     return () => clearInterval(interval);
   }, []);
 
+  // Helper format ticket date time
+  const formatTicketDateTime = (dateTimeStr?: string) => {
+    if (!dateTimeStr) return '';
+    try {
+      const d = new Date(dateTimeStr);
+      if (isNaN(d.getTime())) return dateTimeStr;
+      const dateFormatted = new Intl.DateTimeFormat('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(d);
+      const timeFormatted = new Intl.DateTimeFormat('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(d);
+      return `${dateFormatted} (${timeFormatted} WIB)`;
+    } catch {
+      return dateTimeStr;
+    }
+  };
+
   // Fetch dynamic tickets from Supabase on mount
   useEffect(() => {
     async function loadDynamicTickets() {
@@ -241,25 +262,48 @@ export default function SinglePageSeminar() {
         if (dbTickets && dbTickets.length > 0) {
           const mapped: TicketCategory[] = dbTickets
             .filter((t) => t.visibility === 'PUBLIC' && t.status !== 'Archived')
-            .map((t) => ({
-              id: t.id,
-              name: t.name,
-              tag: t.badge === 'EARLY' ? 'Paling Hemat' : t.badge === 'NORMAL' ? 'Paling Populer' : 'Akses Eksklusif',
-              price: t.price,
-              originalPrice: t.price * 1.3,
-              quota: t.quota,
-              remaining: t.remaining,
-              isPopular: t.badge === 'NORMAL',
-              isAvailable: t.status === 'Active' && t.remaining > 0,
-              badgeColor: t.badge === 'EARLY' ? 'teal' : t.badge === 'NORMAL' ? 'orange' : 'navy',
-              perks: t.benefits && t.benefits.length > 0 ? t.benefits : [
-                'Akses Lengkap Seminar (Offline)',
-                'E-Sertifikat Resmi ber-SKP',
-                'E-Booklet Materi Eksklusif Pembicara',
-                'Snack & Coffee Break',
-                'Sesi Tanya Jawab Interaktif'
-              ]
-            }));
+            .map((t) => {
+              const tagText =
+                t.badge === 'EARLY'
+                  ? 'Paling Hemat'
+                  : t.badge === 'NORMAL'
+                    ? 'Paling Populer'
+                    : t.badge === 'EXTEND'
+                      ? 'Akses Eksklusif'
+                      : t.badge || 'Official Pass';
+
+              const isEarly = t.badge === 'EARLY' || t.name.toLowerCase().includes('early');
+              const isNormal = t.badge === 'NORMAL' || t.name.toLowerCase().includes('presale') || t.name.toLowerCase().includes('regular');
+              const badgeColor: 'teal' | 'orange' | 'navy' = isEarly ? 'teal' : isNormal ? 'orange' : 'navy';
+              const isPopular = isNormal;
+              const isAvailable = t.status === 'Active' && Number(t.remaining) > 0;
+
+              return {
+                id: t.id,
+                name: t.name,
+                description: t.description || '',
+                tag: tagText,
+                badge: t.badge,
+                price: Number(t.price) || 0,
+                originalPrice: Number(t.price) > 0 ? Math.round(Number(t.price) * 1.35) : undefined,
+                quota: Number(t.quota) || 0,
+                sold: Number(t.sold) || 0,
+                remaining: Number(t.remaining) !== undefined ? Number(t.remaining) : Number(t.quota) || 0,
+                startDate: t.startDate || '',
+                endDate: t.endDate || '',
+                isPopular,
+                isAvailable,
+                badgeColor,
+                perks: Array.isArray(t.benefits) && t.benefits.length > 0 ? t.benefits : [
+                  'Akses Lengkap Seminar (Offline)',
+                  'E-Sertifikat Resmi ber-SKP',
+                  'E-Booklet Materi Eksklusif Pembicara',
+                  'Snack & Coffee Break',
+                  'Sesi Tanya Jawab Interaktif'
+                ],
+              };
+            });
+
           if (mapped.length > 0) {
             setCategories(mapped);
             setSelectedCategory((prev) => mapped.find((m) => m.id === prev.id) || mapped[0]);
@@ -277,7 +321,7 @@ export default function SinglePageSeminar() {
     handleOpenOrderModal(cat);
   };
 
-  // Submit step 1: Proceed to upload payment proof step
+  // Submit step 1: Proceed to upload payment proof step (or directly confirm for Free Tickets)
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -300,19 +344,20 @@ export default function SinglePageSeminar() {
     const randomNum = Math.floor(10000 + Math.random() * 90000);
     const orderId = `ORD-2026-${randomNum}`;
     const ticketCode = `SEM-2026-${randomNum}`;
-    const subtotal = selectedCategory.price;
+    const isFree = Number(selectedCategory.price) === 0 || selectedCategory.badge === 'FREE';
+    const subtotal = isFree ? 0 : Number(selectedCategory.price) || 0;
 
     const newOrder: SeminarOrder = {
       orderId,
       ticketCode,
       ticketCategoryId: selectedCategory.id,
       ticketCategoryName: selectedCategory.name,
-      ticketPrice: selectedCategory.price,
+      ticketPrice: subtotal,
       quantity: 1,
       totalPrice: subtotal,
-      paymentMethod: "QRIS Official (Scan QR)",
-      paymentStatus: "Menunggu Pembayaran",
-      ticketStatus: "Tiket Belum Dibayar",
+      paymentMethod: isFree ? "Complimentary / Free Pass" : "QRIS Official (Scan QR)",
+      paymentStatus: isFree ? "Pembayaran Berhasil" : "Menunggu Pembayaran",
+      ticketStatus: isFree ? "Tiket Aktif" : "Tiket Belum Dibayar",
       createdAt: new Date().toISOString(),
       customer: {
         fullName: fullName.trim(),
@@ -325,8 +370,14 @@ export default function SinglePageSeminar() {
     };
 
     setActiveOrder(newOrder);
-    setPaymentProofFile(null);
-    setCheckoutStep(2);
+
+    if (isFree) {
+      setPaymentProofFile("FREE_PASS");
+      setShowConfirmModal(true);
+    } else {
+      setPaymentProofFile(null);
+      setCheckoutStep(2);
+    }
   };
 
   // Upload proof file reader (Local preview, uploads to Supabase Storage on submit)
@@ -353,7 +404,8 @@ export default function SinglePageSeminar() {
     e.preventDefault();
     if (!activeOrder) return;
 
-    if (!paymentProofFile) {
+    const isFree = activeOrder.totalPrice === 0 || activeOrder.ticketPrice === 0;
+    if (!isFree && !paymentProofFile) {
       setErrorMessage("Wajib mengunggah foto / screenshot bukti transaksi sebelum melanjutkan!");
       return;
     }
@@ -364,17 +416,20 @@ export default function SinglePageSeminar() {
 
   // Confirm and proceed to create order & upload proof to Supabase Storage
   const handleConfirmAndSubmitOrder = async () => {
-    if (!activeOrder || !paymentProofFile) return;
+    if (!activeOrder) return;
+
+    const isFree = activeOrder.totalPrice === 0 || activeOrder.ticketPrice === 0;
+    if (!isFree && !paymentProofFile) return;
 
     setShowConfirmModal(false);
     setIsProcessing(true);
     setErrorMessage(null);
 
-    let finalProofUrl = paymentProofFile;
+    let finalProofUrl = paymentProofFile || (isFree ? "FREE_PASS" : "");
 
     try {
-      // 1. Upload proof file directly to Supabase Storage bucket "payment-proofs" (Fast upload ~300ms)
-      if (proofFileRaw) {
+      // 1. Upload proof file directly to Supabase Storage bucket "payment-proofs" if provided
+      if (proofFileRaw && !isFree) {
         try {
           const uploadRes = await uploadPaymentProofToSupabase(proofFileRaw, activeOrder.orderId);
           if (uploadRes.success && uploadRes.url) {
@@ -390,8 +445,8 @@ export default function SinglePageSeminar() {
       const finalizedOrder: SeminarOrder = {
         ...activeOrder,
         paymentProof: finalProofUrl,
-        paymentStatus: "Menunggu Konfirmasi Admin",
-        ticketStatus: "Menunggu Konfirmasi",
+        paymentStatus: isFree ? "Pembayaran Berhasil" : "Menunggu Konfirmasi Admin",
+        ticketStatus: isFree ? "Tiket Aktif" : "Menunggu Konfirmasi",
       };
 
       // 2. Save order to Supabase database (transactions & participants table)
@@ -399,7 +454,7 @@ export default function SinglePageSeminar() {
         orderId: finalizedOrder.orderId,
         ticketId: finalizedOrder.ticketCategoryId,
         ticketName: finalizedOrder.ticketCategoryName,
-        ticketType: "PAID",
+        ticketType: isFree ? "FREE" : "PAID",
         ticketPrice: finalizedOrder.ticketPrice,
         quantity: finalizedOrder.quantity,
         totalPrice: finalizedOrder.totalPrice,
@@ -418,62 +473,18 @@ export default function SinglePageSeminar() {
 
       // 4. Transition to Success E-Ticket Step (Data is 100% saved)
       setCheckoutStep(3);
-
-      // 5. Trigger Server-Side Brevo Email (Runs independently on server even if user closes tab)
-      fetch('/api/send-ticket-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: finalizedOrder.orderId,
-          ticketCode: finalizedOrder.ticketCode,
-          customerName: finalizedOrder.customer.fullName,
-          customerEmail: finalizedOrder.customer.email,
-          customerNim: finalizedOrder.customer.nim,
-          customerFaculty: finalizedOrder.customer.faculty,
-          customerProdi: finalizedOrder.customer.studyProgram,
-          customerWhatsapp: finalizedOrder.customer.phone,
-          ticketName: finalizedOrder.ticketCategoryName,
-          ticketPrice: finalizedOrder.totalPrice,
-          paymentMethod: finalizedOrder.paymentMethod,
-          paymentStatus: finalizedOrder.paymentStatus,
-          certificateStatus: "Tersedia Setelah Acara Selesai (SKP Resmi)",
-        }),
-      }).catch((emailErr) => {
-        console.warn('Background Brevo email trigger notice:', emailErr);
-      });
     } catch (err: any) {
       console.error('Error saving order to database:', err);
       // Fallback: save locally and notify user safely without losing entered form data
       const fallbackOrder: SeminarOrder = {
         ...activeOrder,
         paymentProof: finalProofUrl,
-        paymentStatus: "Menunggu Konfirmasi Admin",
-        ticketStatus: "Menunggu Konfirmasi",
+        paymentStatus: isFree ? "Pembayaran Berhasil" : "Menunggu Konfirmasi Admin",
+        ticketStatus: isFree ? "Tiket Aktif" : "Menunggu Konfirmasi",
       };
       saveNewOrder(fallbackOrder);
       setActiveOrder(fallbackOrder);
       setCheckoutStep(3);
-
-      // Trigger fallback email
-      fetch('/api/send-ticket-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: fallbackOrder.orderId,
-          ticketCode: fallbackOrder.ticketCode,
-          customerName: fallbackOrder.customer.fullName,
-          customerEmail: fallbackOrder.customer.email,
-          customerNim: fallbackOrder.customer.nim,
-          customerFaculty: fallbackOrder.customer.faculty,
-          customerProdi: fallbackOrder.customer.studyProgram,
-          customerWhatsapp: fallbackOrder.customer.phone,
-          ticketName: fallbackOrder.ticketCategoryName,
-          ticketPrice: fallbackOrder.totalPrice,
-          paymentMethod: fallbackOrder.paymentMethod,
-          paymentStatus: fallbackOrder.paymentStatus,
-          certificateStatus: "Tersedia Setelah Acara Selesai (SKP Resmi)",
-        }),
-      }).catch((e) => console.warn('Fallback email notice:', e));
     } finally {
       setIsProcessing(false);
     }
@@ -1232,77 +1243,179 @@ export default function SinglePageSeminar() {
 
             {/* Pricing Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-              {categories.map((cat) => (
-                <div
-                  key={cat.id}
-                  className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
-                    ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
-                    : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
-                    }`}
-                >
-                  {cat.tag && (
-                    <span
-                      className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${cat.badgeColor === "orange"
-                        ? "bg-hce-orange"
-                        : cat.badgeColor === "teal"
-                          ? "bg-hce-teal"
-                          : "bg-hce-navy"
-                        }`}
-                    >
-                      {cat.tag}
-                    </span>
-                  )}
+              {categories.map((cat) => {
+                const isSoldOut = !cat.isAvailable || (cat.remaining !== undefined && cat.remaining <= 0);
+                const hasStartDate = Boolean(cat.startDate);
+                const hasEndDate = Boolean(cat.endDate);
 
-                  <div className="space-y-5">
-                    <div>
-                      <h3 className="text-xl font-extrabold text-hce-navy">{cat.name}</h3>
-                      <div className="flex items-baseline space-x-2 mt-2">
-                        <span
-                          className="text-3xl sm:text-4xl font-black text-hce-teal"
-                          style={{ fontFamily: "var(--font-bebas-neue)" }}
-                        >
-                          {formatRupiah(cat.price)}
-                        </span>
-                        {cat.originalPrice && (
-                          <span className="text-xs line-through text-slate-400 font-semibold">
-                            {formatRupiah(cat.originalPrice)}
+                return (
+                  <div
+                    key={cat.id}
+                    className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
+                        ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
+                        : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
+                      } ${isSoldOut ? "opacity-90" : ""}`}
+                  >
+                    {/* 1. Badge Tiket */}
+                    {cat.badge && (
+                      <span
+                        className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${cat.badge === "orange"
+                            ? "bg-hce-orange"
+                            : cat.badge === "teal"
+                              ? "bg-hce-teal"
+                              : "bg-hce-navy"
+                          }`}
+                      >
+                        {cat.badge}
+                      </span>
+                    )}
+
+                    <div className="space-y-5">
+                      {/* 2. Name Tiket, Deskripsi & Harga */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          {isSoldOut && (
+                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                              Habis
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-extrabold text-hce-navy">{cat.name}</h3>
+
+                        {/* Deskripsi Tiket */}
+                        {cat.description ? (
+                          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                            {cat.description}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-400 mt-2 leading-relaxed italic">
+                            Akses tiket resmi seminar HIPMI Collab Expo 2026.
+                          </p>
+                        )}
+
+                        {/* Harga Tiket */}
+                        <div className="flex items-baseline space-x-2 mt-3.5 pt-3 border-t border-slate-100">
+                          <span
+                            className="text-3xl sm:text-4xl font-black text-hce-teal"
+                            style={{ fontFamily: "var(--font-bebas-neue)" }}
+                          >
+                            {cat.price === 0 ? "Gratis" : formatRupiah(cat.price)}
                           </span>
+                          {cat.originalPrice && (
+                            <span className="text-xs line-through text-slate-400 font-semibold">
+                              {formatRupiah(cat.originalPrice)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 3. Quota Tiket & Sisa Kuota */}
+                      {/* <div className="bg-slate-100/90 rounded-2xl p-3 border border-slate-200/70 space-y-2 text-xs">
+                        <div className="flex items-center justify-between font-bold text-slate-700">
+                          <span className="flex items-center gap-1.5 text-slate-500">
+                            <Users className="w-3.5 h-3.5 text-hce-teal" />
+                            <span>Ketersediaan Tiket:</span>
+                          </span>
+                          <span className={isSoldOut ? "text-rose-600 font-bold" : "text-emerald-700 font-bold"}>
+                            {isSoldOut ? "Sold Out" : `Sisa ${cat.remaining} Kursi`}
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${isSoldOut
+                                ? "bg-rose-500"
+                                : cat.remaining <= 15
+                                  ? "bg-amber-500"
+                                  : "bg-hce-teal"
+                              }`}
+                            style={{
+                              width: `${cat.quota > 0
+                                  ? Math.min(
+                                    100,
+                                    Math.max(
+                                      5,
+                                      Math.round(
+                                        ((cat.quota - (cat.remaining ?? 0)) / cat.quota) * 100
+                                      )
+                                    )
+                                  )
+                                  : 100
+                                }%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                          <span>Total Kuota: <strong>{cat.quota}</strong></span>
+                          <span>Terjual: <strong>{cat.sold ?? Math.max(0, cat.quota - cat.remaining)}</strong></span>
+                        </div>
+                      </div> */}
+
+                      {/* 4. Start Date & Time (dan Periode Penjualan) */}
+                      {/* {(hasStartDate || hasEndDate) && (
+                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-1 text-xs">
+                          <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                            <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>Periode Penjualan Tiket:</span>
+                          </div>
+                          {hasStartDate && (
+                            <div className="flex items-center gap-1 text-[11px] text-amber-800">
+                              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                              <span>Mulai: <strong>{formatTicketDateTime(cat.startDate)}</strong></span>
+                            </div>
+                          )}
+                          {hasEndDate && (
+                            <div className="flex items-center gap-1 text-[11px] text-amber-800">
+                              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
+                              <span>Selesai: <strong>{formatTicketDateTime(cat.endDate)}</strong></span>
+                            </div>
+                          )}
+                        </div>
+                      )} */}
+
+                      {/* 5. Fasilitas & Benefit Tiket */}
+                      <div className="border-t border-slate-100 pt-4 space-y-2.5">
+                        <span className="text-xs font-bold text-hce-navy/80 uppercase tracking-wider block">
+                          Fasilitas &amp; Benefit Tiket ({cat.perks.length}):
+                        </span>
+                        {cat.perks && cat.perks.length > 0 ? (
+                          <ul className="space-y-2 text-xs">
+                            {cat.perks.map((perk, i) => (
+                              <li key={i} className="flex items-start space-x-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                <span className="text-hce-navy/80 font-medium leading-relaxed">{perk}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">
+                            Benefit tiket akan diumumkan oleh panitia.
+                          </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="border-t border-slate-100 pt-4 space-y-2.5">
-                      <span className="text-xs font-bold text-hce-navy/80 uppercase tracking-wider block">
-                        Benefit Termasuk:
-                      </span>
-                      <ul className="space-y-2 text-xs">
-                        {cat.perks.map((perk, i) => (
-                          <li key={i} className="flex items-start space-x-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                            <span className="text-hce-navy/80 font-medium">{perk}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    {/* 6. Tombol Aksi */}
+                    <div className="pt-6 mt-6 border-t border-slate-100">
+                      <button
+                        type="button"
+                        disabled={isSoldOut}
+                        onClick={() => handleSelectCategoryFromPricing(cat)}
+                        className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 ${isSoldOut
+                            ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                            : cat.isPopular
+                              ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105 cursor-pointer"
+                              : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105 cursor-pointer"
+                          }`}
+                        style={{ fontFamily: "var(--font-bebas-neue)" }}
+                      >
+                        <Ticket className="w-4 h-4" />
+                        <span>{isSoldOut ? "Tiket Habis (Sold Out)" : "Pilih & Beli Tiket Ini"}</span>
+                      </button>
                     </div>
-                  </div>
 
-                  <div className="pt-6 mt-6 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => handleSelectCategoryFromPricing(cat)}
-                      className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${cat.isPopular
-                        ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105"
-                        : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105"
-                        }`}
-                      style={{ fontFamily: "var(--font-bebas-neue)" }}
-                    >
-                      <Ticket className="w-4 h-4" />
-                      <span>Pilih &amp; Beli Tiket Ini</span>
-                    </button>
                   </div>
-
-                </div>
-              ))}
+                );
+              })}
             </div>
 
           </div>
@@ -1643,7 +1756,7 @@ export default function SinglePageSeminar() {
                           Total Pembayaran:
                         </span>
                         <span className="text-2xl sm:text-3xl font-black text-hce-orange" style={{ fontFamily: "var(--font-bebas-neue)" }}>
-                          {formatRupiah(selectedCategory.price)}
+                          {selectedCategory.price === 0 ? "Rp 0 (GRATIS)" : formatRupiah(selectedCategory.price)}
                         </span>
                       </div>
 
@@ -1652,7 +1765,7 @@ export default function SinglePageSeminar() {
                         className="w-full sm:w-auto px-7 py-3.5 bg-hce-orange hover:bg-hce-orange/90 text-white rounded-xl text-base font-black uppercase tracking-wider shadow-lg shadow-hce-orange/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2 cursor-pointer"
                         style={{ fontFamily: "var(--font-bebas-neue)" }}
                       >
-                        <span>Berikutnya</span>
+                        <span>{selectedCategory.price === 0 ? "Konfirmasi & Ambil Tiket" : "Berikutnya: Pembayaran"}</span>
                         <ArrowRight className="w-5 h-5" />
                       </button>
                     </div>
@@ -1883,10 +1996,10 @@ export default function SinglePageSeminar() {
                           </div>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${activeOrder.paymentStatus === "Pembayaran Berhasil" || activeOrder.paymentStatus === "Paid"
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
-                            : activeOrder.paymentStatus === "Pembayaran Tidak Berhasil" || activeOrder.paymentStatus === "Failed"
-                              ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
-                              : "bg-blue-500/30 text-blue-200 border-blue-400/40"
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                          : activeOrder.paymentStatus === "Pembayaran Tidak Berhasil" || activeOrder.paymentStatus === "Failed"
+                            ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                            : "bg-blue-500/30 text-blue-200 border-blue-400/40"
                           }`}>
                           {activeOrder.paymentStatus === "Pembayaran Berhasil" || activeOrder.paymentStatus === "Paid"
                             ? "Pembayaran Berhasil"
@@ -2143,10 +2256,10 @@ export default function SinglePageSeminar() {
                         </div>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
-                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
-                          : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
-                            ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
-                            : "bg-blue-500/30 text-blue-200 border-blue-400/40"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                        : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
+                          ? "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                          : "bg-blue-500/30 text-blue-200 border-blue-400/40"
                         }`}>
                         {lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
                           ? "Pembayaran Berhasil"
@@ -2159,10 +2272,10 @@ export default function SinglePageSeminar() {
                     <div className="p-5 space-y-4">
                       {/* Status Info in Card */}
                       <div className={`p-3 rounded-xl border text-xs font-medium ${lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-                          : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
-                            ? "bg-rose-50 border-rose-200 text-rose-800"
-                            : "bg-blue-50 border-blue-200 text-blue-900"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : lookupTicket.paymentStatus === "Pembayaran Tidak Berhasil" || lookupTicket.paymentStatus === "Failed"
+                          ? "bg-rose-50 border-rose-200 text-rose-800"
+                          : "bg-blue-50 border-blue-200 text-blue-900"
                         }`}>
                         {lookupTicket.paymentStatus === "Pembayaran Berhasil" || lookupTicket.paymentStatus === "Paid" ? (
                           <div className="flex items-center gap-1.5">

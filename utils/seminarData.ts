@@ -3,13 +3,18 @@
 export interface TicketCategory {
   id: string;
   name: string;
+  description?: string;
   tag?: string;
   price: number;
   originalPrice?: number;
   quota: number;
+  sold?: number;
   remaining: number;
+  startDate?: string;
+  endDate?: string;
   isPopular?: boolean;
   isAvailable: boolean;
+  badge?: string;
   badgeColor: "teal" | "orange" | "navy";
   perks: string[];
 }
@@ -130,11 +135,16 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
   {
     id: "early-bird",
     name: "Early Bird",
+    description: "Tiket khusus pendaftaran awal dengan harga paling terjangkau dan kuota sangat terbatas.",
     tag: "Paling Hemat",
+    badge: "EARLY",
     price: 35000,
     originalPrice: 50000,
     quota: 100,
+    sold: 82,
     remaining: 18,
+    startDate: "2026-09-01T08:00",
+    endDate: "2026-09-15T23:59",
     badgeColor: "teal",
     isAvailable: true,
     perks: [
@@ -148,11 +158,16 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
   {
     id: "regular",
     name: "Presale / Regular",
+    description: "Tiket utama seminar offline dengan benefit seminar kit lengkap, materi eksklusif, dan sertifikat SKP.",
     tag: "Paling Populer",
+    badge: "NORMAL",
     price: 50000,
     originalPrice: 75000,
     quota: 250,
+    sold: 108,
     remaining: 142,
+    startDate: "2026-09-16T00:00",
+    endDate: "2026-10-15T23:59",
     badgeColor: "orange",
     isPopular: true,
     isAvailable: true,
@@ -167,11 +182,16 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
   {
     id: "vip",
     name: "VIP Experience",
+    description: "Pengalaman VIP eksklusif dengan kursi baris terdepan dan akses privat Meet & Greet bersama Sadam Permana.",
     tag: "Akses Eksklusif",
+    badge: "EXTEND",
     price: 85000,
     originalPrice: 120000,
     quota: 50,
+    sold: 41,
     remaining: 9,
+    startDate: "2026-09-01T08:00",
+    endDate: "2026-10-23T23:59",
     badgeColor: "navy",
     isAvailable: true,
     perks: [

@@ -69,7 +69,7 @@ export default function TransactionsPage() {
       const matchPayment = paymentStatusFilter === 'ALL' || tx.paymentStatus === paymentStatusFilter;
 
       return matchSearch && matchTicket && matchPayment;
-    }).slice(0, 50);
+    });
   }, [transactions, searchQuery, ticketFilter, paymentStatusFilter]);
 
   const formatRupiah = (amount: number) => {
@@ -558,7 +558,7 @@ export default function TransactionsPage() {
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Verifikasi & Status</p>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100 text-center">
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-center">
             <div className="p-1.5 bg-amber-50/80 rounded-xl">
               <span className="text-[10px] text-amber-700 font-bold block">Pending</span>
               <span className="text-sm font-extrabold text-amber-800">{stats.pendingOrdersCount}</span>
@@ -566,10 +566,6 @@ export default function TransactionsPage() {
             <div className="p-1.5 bg-rose-50/80 rounded-xl">
               <span className="text-[10px] text-rose-700 font-bold block">Gagal</span>
               <span className="text-sm font-extrabold text-rose-800">{stats.failedOrdersCount}</span>
-            </div>
-            <div className="p-1.5 bg-purple-50/80 rounded-xl">
-              <span className="text-[10px] text-purple-700 font-bold block">Refund</span>
-              <span className="text-sm font-extrabold text-purple-800">{stats.refundedOrdersCount}</span>
             </div>
           </div>
         </div>
@@ -597,7 +593,6 @@ export default function TransactionsPage() {
             { value: 'Pending', label: 'Menunggu Konfirmasi (Pending)' },
             { value: 'Paid', label: 'Pembayaran Berhasil (Paid)' },
             { value: 'Failed', label: 'Pembayaran Tidak Berhasil (Failed)' },
-            { value: 'Refunded', label: 'Refunded' },
           ]}
         />
       </div>
@@ -857,27 +852,6 @@ export default function TransactionsPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Tombol aksi verifikasi langsung */}
-                <div className="pt-2 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleApprovePayment(selectedTx.orderId)}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    Setujui (Berhasil)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRejectPayment(selectedTx.orderId)}
-                    className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                    Tolak (Gagal)
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -908,18 +882,6 @@ export default function TransactionsPage() {
                   <Send className="w-3.5 h-3.5" />
                   Kirim Email
                 </button>
-
-                {selectedTx.paymentStatus === 'Paid' && (
-                  <button
-                    onClick={() => {
-                      updateTransactionStatus(selectedTx.orderId, 'Refunded');
-                      setSelectedTx({ ...selectedTx, paymentStatus: 'Refunded' });
-                    }}
-                    className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    Simulasi Refund
-                  </button>
-                )}
               </div>
             </div>
           </div>

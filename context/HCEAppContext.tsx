@@ -671,10 +671,38 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const deleteParticipant = async (id: string) => {
     const target = participants.find((p) => p.id === id);
     if (!target) return;
+
     setParticipants((prev) => prev.filter((p) => p.id !== id));
     setTransactions((prev) => prev.filter((tx) => tx.orderId !== target.orderId));
-    await deleteParticipantInSupabase(id, target.orderId, target.paymentProof);
-    addToast(`Peserta ${target.name} dan bukti pembayaran telah dihapus bersih.`, 'info');
+
+    // Immediately restore ticket quota in local tickets state
+    if (target.ticketId) {
+      setTickets((prev) =>
+        prev.map((t) => {
+          if (t.id === target.ticketId) {
+            const newSold = Math.max(0, t.sold - 1);
+            const newRemaining = Math.min(t.quota, Math.max(0, t.quota - newSold));
+            const newStatus = newRemaining > 0 && t.status === 'Sold Out' ? 'Active' : t.status;
+            return {
+              ...t,
+              sold: newSold,
+              remaining: newRemaining,
+              status: newStatus,
+            };
+          }
+          return t;
+        })
+      );
+    }
+
+    await deleteParticipantInSupabase(id, target.orderId, target.paymentProof, target.ticketId, 1);
+    await refreshData();
+    addToast(`Peserta ${target.name} dihapus. Kuota tiket ${target.ticketName || ''} berhasil dikembalikan (+1).`, 'info');
+    recordActivity(
+      'participant_deleted',
+      'Peserta Dihapus',
+      `Super Admin menghapus data peserta ${target.name} (${target.orderId}) dan mengembalikan 1 kuota tiket`
+    );
   };
 
   const updateTransactionStatus = async (orderId: string, status: PaymentStatus) => {

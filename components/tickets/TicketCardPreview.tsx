@@ -130,19 +130,6 @@ export const TicketCardPreview: React.FC<TicketCardPreviewProps> = ({
           <p className="text-xs text-slate-400 italic">Belum ada benefit ditambahkan.</p>
         )}
       </div>
-
-      {/* Action CTA Live Preview */}
-      <div className="pt-2 relative z-10">
-        <button
-          disabled
-          className="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-gradient-to-r from-[#E05A1F] to-[#d04a0f] text-white shadow-lg shadow-[#E05A1F]/30 opacity-90 cursor-not-allowed"
-        >
-          {type === 'FREE' ? 'AMBIL TIKET' : 'BELI TIKET'}
-        </button>
-        <p className="text-center text-[10px] text-slate-400 mt-2">
-          * Satu tiket hanya dapat dibeli oleh 1 peserta
-        </p>
-      </div>
     </div>
   );
 };
