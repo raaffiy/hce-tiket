@@ -64,7 +64,7 @@ import {
   fetchMediaPartnersFromSupabase,
   uploadPaymentProofToSupabase,
 } from "@/lib/supabaseServices";
-import { MediaPartner } from "@/types/hce";
+import { MediaPartner, Ticket as HCETicket } from "@/types/hce";
 
 export default function SinglePageSeminar() {
   // Dynamic Ticket Categories from Supabase (Fallback to seminarData)
@@ -264,17 +264,21 @@ export default function SinglePageSeminar() {
           const urlParams = new URLSearchParams(window.location.search);
           const ticketParam = (urlParams.get('ticket') || urlParams.get('private') || urlParams.get('code') || '').trim();
 
+          // Helper to match ticket by ID, code, or private link
+          const isMatch = (t: HCETicket, param: string) => {
+            if (!param) return false;
+            const paramLower = param.toLowerCase().replace(/^\/t\//, '').replace(/^https?:\/\/[^\/]+\/t\//, '').trim();
+            const idMatch = t.id.toLowerCase() === paramLower;
+            const nameMatch = t.name.toLowerCase() === paramLower;
+            const linkMatch = Boolean(t.privateLink && t.privateLink.toLowerCase().includes(paramLower));
+            return idMatch || nameMatch || linkMatch;
+          };
+
           const mapped: TicketCategory[] = dbTickets
             .filter((t) => {
               if (t.status === 'Archived') return false;
               if (t.visibility === 'PUBLIC') return true;
-              // If private, allow if URL parameter matches ID or private_link or private code
-              if (ticketParam) {
-                const paramLower = ticketParam.toLowerCase();
-                const idMatch = t.id.toLowerCase() === paramLower;
-                const linkMatch = t.privateLink && t.privateLink.toLowerCase().includes(paramLower);
-                return idMatch || linkMatch;
-              }
+              if (ticketParam && isMatch(t, ticketParam)) return true;
               return false;
             })
             .map((t) => {
@@ -323,19 +327,14 @@ export default function SinglePageSeminar() {
             setCategories(mapped);
 
             if (ticketParam) {
-              const paramLower = ticketParam.toLowerCase();
-              const matchedCategory = mapped.find(
-                (m) =>
-                  m.id.toLowerCase() === paramLower ||
-                  dbTickets.some(
-                    (dbT) =>
-                      dbT.id === m.id &&
-                      (dbT.id.toLowerCase() === paramLower || (dbT.privateLink && dbT.privateLink.toLowerCase().includes(paramLower)))
-                  )
-              );
+              const matchedTicket = dbTickets.find((t) => isMatch(t, ticketParam));
+              const matchedCategory = matchedTicket ? mapped.find((m) => m.id === matchedTicket.id) : null;
 
               if (matchedCategory) {
                 setSelectedCategory(matchedCategory);
+                setCheckoutStep(1);
+                setErrorMessage(null);
+                setShowConfirmModal(false);
                 setIsOrderModalOpen(true);
               } else {
                 setSelectedCategory(mapped[0]);
