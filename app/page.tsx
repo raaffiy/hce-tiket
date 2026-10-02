@@ -303,7 +303,12 @@ export default function SinglePageSeminar() {
               const isNormal = t.badge === 'NORMAL' || t.name.toLowerCase().includes('presale') || t.name.toLowerCase().includes('regular');
               const badgeColor: 'teal' | 'orange' | 'navy' = isEarly ? 'teal' : isNormal ? 'orange' : 'navy';
               const isPopular = isNormal;
-              const isAvailable = t.status === 'Active' && Number(t.remaining) > 0;
+
+              const nowTime = new Date().getTime();
+              const isExpired = Boolean(t.endDate && nowTime > new Date(t.endDate).getTime());
+              const isUpcoming = Boolean(t.startDate && nowTime < new Date(t.startDate).getTime());
+              const isOutOfStock = Number(t.remaining) <= 0 || t.status === 'Sold Out';
+              const isAvailable = t.status === 'Active' && !isOutOfStock && !isExpired && !isUpcoming;
 
               return {
                 id: t.id,
@@ -375,6 +380,26 @@ export default function SinglePageSeminar() {
 
     if (!studyProgram.trim()) {
       setErrorMessage("Harap mengisi Program Studi (Prodi)!");
+      return;
+    }
+
+    const nowTime = new Date().getTime();
+    const isCatExpired = Boolean(selectedCategory.endDate && nowTime > new Date(selectedCategory.endDate).getTime());
+    const isCatUpcoming = Boolean(selectedCategory.startDate && nowTime < new Date(selectedCategory.startDate).getTime());
+    const isCatOutOfStock = selectedCategory.remaining !== undefined && selectedCategory.remaining <= 0;
+
+    if (isCatExpired) {
+      setErrorMessage("Masa penjualan untuk kategori tiket ini telah berakhir (Closed).");
+      return;
+    }
+
+    if (isCatUpcoming) {
+      setErrorMessage("Masa penjualan tiket ini belum dibuka (Segera Hadir).");
+      return;
+    }
+
+    if (isCatOutOfStock) {
+      setErrorMessage("Kuota tiket ini sudah habis (Sold Out). Silakan pilih kategori tiket lain.");
       return;
     }
 
@@ -1281,17 +1306,40 @@ export default function SinglePageSeminar() {
             {/* Pricing Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
               {categories.map((cat) => {
-                const isSoldOut = !cat.isAvailable || (cat.remaining !== undefined && cat.remaining <= 0);
+                const nowTime = new Date().getTime();
+                const isOutOfStock = (cat.remaining !== undefined && cat.remaining <= 0);
+                const isExpired = Boolean(cat.endDate && nowTime > new Date(cat.endDate).getTime());
+                const isUpcoming = Boolean(cat.startDate && nowTime < new Date(cat.startDate).getTime());
+                const isLocked = isOutOfStock || isExpired || isUpcoming || !cat.isAvailable;
                 const hasStartDate = Boolean(cat.startDate);
                 const hasEndDate = Boolean(cat.endDate);
+
+                // Determine badge and button text
+                let statusBadgeText = "";
+                let statusBadgeClass = "bg-rose-50 text-rose-600 border-rose-200";
+                let buttonLabel = "Pilih & Beli Tiket Ini";
+
+                if (isExpired) {
+                  statusBadgeText = "Penjualan Ditutup";
+                  statusBadgeClass = "bg-slate-100 text-slate-600 border-slate-300";
+                  buttonLabel = "Penjualan Berakhir (Closed)";
+                } else if (isOutOfStock) {
+                  statusBadgeText = "Habis (Sold Out)";
+                  statusBadgeClass = "bg-rose-50 text-rose-600 border-rose-200";
+                  buttonLabel = "Tiket Habis (Sold Out)";
+                } else if (isUpcoming) {
+                  statusBadgeText = "Segera Hadir";
+                  statusBadgeClass = "bg-amber-50 text-amber-600 border-amber-200";
+                  buttonLabel = "Belum Dibuka (Segera Hadir)";
+                }
 
                 return (
                   <div
                     key={cat.id}
-                    className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
+                    className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular && !isLocked
                       ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
                       : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
-                      } ${isSoldOut ? "opacity-90" : ""}`}
+                      } ${isLocked ? "opacity-90 grayscale-[15%]" : ""}`}
                   >
                     {/* 1. Badge Tiket */}
                     {cat.badge && (
@@ -1311,9 +1359,9 @@ export default function SinglePageSeminar() {
                       {/* 2. Name Tiket, Deskripsi & Harga */}
                       <div>
                         <div className="flex items-center gap-2 mb-1.5">
-                          {isSoldOut && (
-                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
-                              Habis
+                          {statusBadgeText && (
+                            <span className={`text-[10px] font-bold uppercase tracking-wider border px-2 py-0.5 rounded-md ${statusBadgeClass}`}>
+                              {statusBadgeText}
                             </span>
                           )}
                         </div>
@@ -1346,70 +1394,7 @@ export default function SinglePageSeminar() {
                         </div>
                       </div>
 
-                      {/* 3. Quota Tiket & Sisa Kuota */}
-                      {/* <div className="bg-slate-100/90 rounded-2xl p-3 border border-slate-200/70 space-y-2 text-xs">
-                        <div className="flex items-center justify-between font-bold text-slate-700">
-                          <span className="flex items-center gap-1.5 text-slate-500">
-                            <Users className="w-3.5 h-3.5 text-hce-teal" />
-                            <span>Ketersediaan Tiket:</span>
-                          </span>
-                          <span className={isSoldOut ? "text-rose-600 font-bold" : "text-emerald-700 font-bold"}>
-                            {isSoldOut ? "Sold Out" : `Sisa ${cat.remaining} Kursi`}
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${isSoldOut
-                                ? "bg-rose-500"
-                                : cat.remaining <= 15
-                                  ? "bg-amber-500"
-                                  : "bg-hce-teal"
-                              }`}
-                            style={{
-                              width: `${cat.quota > 0
-                                  ? Math.min(
-                                    100,
-                                    Math.max(
-                                      5,
-                                      Math.round(
-                                        ((cat.quota - (cat.remaining ?? 0)) / cat.quota) * 100
-                                      )
-                                    )
-                                  )
-                                  : 100
-                                }%`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                          <span>Total Kuota: <strong>{cat.quota}</strong></span>
-                          <span>Terjual: <strong>{cat.sold ?? Math.max(0, cat.quota - cat.remaining)}</strong></span>
-                        </div>
-                      </div> */}
-
-                      {/* 4. Start Date & Time (dan Periode Penjualan) */}
-                      {/* {(hasStartDate || hasEndDate) && (
-                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-1 text-xs">
-                          <div className="flex items-center gap-1.5 text-amber-900 font-bold">
-                            <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            <span>Periode Penjualan Tiket:</span>
-                          </div>
-                          {hasStartDate && (
-                            <div className="flex items-center gap-1 text-[11px] text-amber-800">
-                              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                              <span>Mulai: <strong>{formatTicketDateTime(cat.startDate)}</strong></span>
-                            </div>
-                          )}
-                          {hasEndDate && (
-                            <div className="flex items-center gap-1 text-[11px] text-amber-800">
-                              <Clock className="w-3 h-3 text-amber-500 shrink-0" />
-                              <span>Selesai: <strong>{formatTicketDateTime(cat.endDate)}</strong></span>
-                            </div>
-                          )}
-                        </div>
-                      )} */}
-
-                      {/* 5. Fasilitas & Benefit Tiket */}
+                      {/* 3. Fasilitas & Benefit Tiket */}
                       <div className="border-t border-slate-100 pt-4 space-y-2.5">
                         <span className="text-xs font-bold text-hce-navy/80 uppercase tracking-wider block">
                           Fasilitas &amp; Benefit Tiket ({cat.perks.length}):
@@ -1431,14 +1416,14 @@ export default function SinglePageSeminar() {
                       </div>
                     </div>
 
-                    {/* 6. Tombol Aksi */}
+                    {/* 4. Tombol Aksi */}
                     <div className="pt-6 mt-6 border-t border-slate-100">
                       <button
                         type="button"
-                        disabled={isSoldOut}
+                        disabled={isLocked}
                         onClick={() => handleSelectCategoryFromPricing(cat)}
-                        className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 ${isSoldOut
-                          ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                        className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 ${isLocked
+                          ? "bg-slate-200 text-slate-500 cursor-not-allowed shadow-none border border-slate-300"
                           : cat.isPopular
                             ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105 cursor-pointer"
                             : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105 cursor-pointer"
@@ -1446,7 +1431,7 @@ export default function SinglePageSeminar() {
                         style={{ fontFamily: "var(--font-bebas-neue)" }}
                       >
                         <Ticket className="w-4 h-4" />
-                        <span>{isSoldOut ? "Tiket Habis (Sold Out)" : "Pilih & Beli Tiket Ini"}</span>
+                        <span>{buttonLabel}</span>
                       </button>
                     </div>
 
@@ -1634,19 +1619,47 @@ export default function SinglePageSeminar() {
                       <div className={categories.length === 1 ? "grid grid-cols-1 sm:grid-cols-2 max-w-lg gap-2.5" : "grid grid-cols-1 sm:grid-cols-3 gap-2.5"}>
                         {categories.map((cat) => {
                           const isSelected = selectedCategory.id === cat.id;
+                          const nowTime = new Date().getTime();
+                          const catExpired = Boolean(cat.endDate && nowTime > new Date(cat.endDate).getTime());
+                          const catUpcoming = Boolean(cat.startDate && nowTime < new Date(cat.startDate).getTime());
+                          const catOutOfStock = (cat.remaining !== undefined && cat.remaining <= 0) || !cat.isAvailable;
+                          const isItemDisabled = catExpired || catUpcoming || catOutOfStock;
+
                           return (
                             <div
                               key={cat.id}
-                              onClick={() => setSelectedCategory(cat)}
-                              className={`p-3.5 rounded-xl cursor-pointer border-2 transition-all flex flex-col justify-between ${isSelected
-                                ? "bg-white border-hce-teal shadow-md"
-                                : "bg-white/60 border-hce-teal/15 hover:bg-white"
-                                }`}
+                              onClick={() => {
+                                if (!isItemDisabled) {
+                                  setSelectedCategory(cat);
+                                }
+                              }}
+                              className={`p-3.5 rounded-xl border-2 transition-all flex flex-col justify-between ${
+                                isItemDisabled
+                                  ? "bg-slate-100/80 border-slate-200 opacity-60 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-white border-hce-teal shadow-md cursor-pointer"
+                                    : "bg-white/60 border-hce-teal/15 hover:bg-white cursor-pointer"
+                              }`}
                             >
                               <div>
                                 <div className="flex justify-between items-center mb-1">
                                   <span className="font-bold text-xs text-hce-navy">{cat.name}</span>
-                                  {isSelected && <Check className="w-3.5 h-3.5 text-hce-teal font-bold" />}
+                                  {isSelected && !isItemDisabled && <Check className="w-3.5 h-3.5 text-hce-teal font-bold" />}
+                                  {catExpired && (
+                                    <span className="text-[9px] font-bold text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded">
+                                      Closed
+                                    </span>
+                                  )}
+                                  {!catExpired && catOutOfStock && (
+                                    <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">
+                                      Habis
+                                    </span>
+                                  )}
+                                  {catUpcoming && (
+                                    <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
+                                      Soon
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="text-base font-black text-hce-teal">{formatRupiah(cat.price)}</span>
                                 <span className="text-[10px] text-slate-400 block mt-0.5">/ tiket</span>
