@@ -15,6 +15,7 @@ import {
   Copy,
   RefreshCw,
 } from 'lucide-react';
+import { normalizePrivateTicketUrl } from '@/lib/supabaseServices';
 
 interface EditTicketModalProps {
   isOpen: boolean;
@@ -48,10 +49,7 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
   const [copiedPrivateLink, setCopiedPrivateLink] = useState(false);
 
   const getFallbackPrivateUrl = (codeOrId: string) => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/?ticket=${codeOrId}`;
-    }
-    return `/?ticket=${codeOrId}`;
+    return normalizePrivateTicketUrl(codeOrId);
   };
 
   // Sync state whenever selected ticket changes

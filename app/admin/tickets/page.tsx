@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Modal } from '@/components/ui/Modal';
 import { EditTicketModal } from '@/components/tickets/EditTicketModal';
+import { normalizePrivateTicketUrl } from '@/lib/supabaseServices';
 import {
   Plus,
   MoreVertical,
@@ -395,12 +396,12 @@ export default function TicketManagementPage() {
                 </p>
                 <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-purple-200 text-xs font-mono text-purple-700">
                   <span className="truncate flex-1 font-semibold">
-                    {selectedTicketForView.privateLink || (typeof window !== 'undefined' ? `${window.location.origin}/?ticket=${selectedTicketForView.id}` : `/?ticket=${selectedTicketForView.id}`)}
+                    {normalizePrivateTicketUrl(selectedTicketForView.privateLink, selectedTicketForView.id)}
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => {
-                        const targetUrl = selectedTicketForView.privateLink || (typeof window !== 'undefined' ? `${window.location.origin}/?ticket=${selectedTicketForView.id}` : `/?ticket=${selectedTicketForView.id}`);
+                        const targetUrl = normalizePrivateTicketUrl(selectedTicketForView.privateLink, selectedTicketForView.id);
                         copyToClipboard(targetUrl);
                       }}
                       className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 rounded-md text-purple-800 font-sans font-bold text-[11px] transition-colors cursor-pointer"
@@ -408,7 +409,7 @@ export default function TicketManagementPage() {
                       {copiedLink ? 'Tersalin!' : 'Copy'}
                     </button>
                     <a
-                      href={selectedTicketForView.privateLink || `/?ticket=${selectedTicketForView.id}`}
+                      href={normalizePrivateTicketUrl(selectedTicketForView.privateLink, selectedTicketForView.id)}
                       target="_blank"
                       rel="noreferrer"
                       className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-sans font-bold text-[11px] transition-colors cursor-pointer"

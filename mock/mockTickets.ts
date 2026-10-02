@@ -84,7 +84,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     endDate: '2026-09-26T23:59',
     benefits: ['VIP Front Row Seating', 'Networking Lounge Access', 'E-Ticket & QR Pass', 'VIP Kit'],
     status: 'Active',
-    privateLink: 'https://hce-ticket.com/t/PRIVATE-COMM-77X',
+    privateLink: '/t/PRIVATE-COMM-77X',
     createdAt: '2026-07-29T16:00:00Z',
   },
   {
@@ -102,7 +102,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     endDate: '2026-09-26T12:00',
     benefits: ['All Access Booth & Stage', 'VIP Hospitality Room', 'E-Certificate Partner'],
     status: 'Active',
-    privateLink: 'https://hce-ticket.com/t/PRIVATE-SPON-99K',
+    privateLink: '/t/PRIVATE-SPON-99K',
     createdAt: '2026-08-05T13:10:00Z',
   },
   {
@@ -137,7 +137,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     endDate: '2026-07-15T23:59',
     benefits: ['Ambassador Access', 'Certificate'],
     status: 'Archived',
-    privateLink: 'https://hce-ticket.com/t/PRIVATE-AMB-01A',
+    privateLink: '/t/PRIVATE-AMB-01A',
     createdAt: '2026-06-20T10:00:00Z',
   }
 ];

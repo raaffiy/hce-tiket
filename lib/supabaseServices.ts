@@ -16,6 +16,31 @@ import {
 // 1. TICKETS SERVICE
 // ==========================================
 
+export function normalizePrivateTicketUrl(rawLink?: string, ticketId?: string): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  if (!rawLink && !ticketId) return origin ? `${origin}/` : '/';
+
+  const link = (rawLink || '').trim();
+  if (!link) {
+    return origin ? `${origin}/?ticket=${ticketId}` : `/?ticket=${ticketId}`;
+  }
+
+  // If it's already a relative URL starting with /
+  if (link.startsWith('/')) {
+    return `${origin}${link}`;
+  }
+
+  // If it's an absolute URL (e.g. https://hce-ticket.com/t/CODE or http://localhost:3000/?ticket=CODE or https://other.com/...)
+  try {
+    const parsed = new URL(link);
+    // Replace hostname/protocol with current origin
+    return `${origin}${parsed.pathname}${parsed.search}`;
+  } catch {
+    // If not a valid URL (just a code or string like "PRIVATE-HCE99A" or "TCK-004")
+    return origin ? `${origin}/?ticket=${encodeURIComponent(link)}` : `/?ticket=${encodeURIComponent(link)}`;
+  }
+}
+
 export function mapTicketFromDB(row: any): Ticket {
   return {
     id: row.id,
@@ -32,7 +57,11 @@ export function mapTicketFromDB(row: any): Ticket {
     endDate: row.end_date || '',
     benefits: Array.isArray(row.benefits) ? row.benefits : typeof row.benefits === 'string' ? JSON.parse(row.benefits) : [],
     status: row.status,
-    privateLink: row.private_link || undefined,
+    privateLink: row.private_link
+      ? normalizePrivateTicketUrl(row.private_link, row.id)
+      : row.visibility === 'PRIVATE'
+        ? normalizePrivateTicketUrl('', row.id)
+        : undefined,
     createdAt: row.created_at || new Date().toISOString(),
   };
 }

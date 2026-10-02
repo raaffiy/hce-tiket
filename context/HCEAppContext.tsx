@@ -18,6 +18,7 @@ import {
   createTicketInSupabase,
   updateTicketInSupabase,
   deleteTicketInSupabase,
+  normalizePrivateTicketUrl,
   fetchParticipantsFromSupabase,
   deleteParticipantInSupabase,
   fetchTransactionsFromSupabase,
@@ -412,7 +413,9 @@ export const HCEAppProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       remaining: target.quota,
       status: 'Active',
       createdAt: new Date().toISOString(),
-      privateLink: target.visibility === 'PRIVATE' ? `https://hce-ticket.com/t/PRIVATE-COPY-${Math.random().toString(36).substr(2, 4).toUpperCase()}` : undefined
+      privateLink: target.visibility === 'PRIVATE'
+        ? normalizePrivateTicketUrl(`/t/PRIVATE-COPY-${Math.random().toString(36).substr(2, 4).toUpperCase()}`)
+        : undefined
     };
     setTickets((prev) => [duplicated, ...prev]);
     await createTicketInSupabase(duplicated);
