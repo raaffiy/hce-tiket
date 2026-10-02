@@ -1252,18 +1252,18 @@ export default function SinglePageSeminar() {
                   <div
                     key={cat.id}
                     className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular
-                        ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
-                        : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
+                      ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
+                      : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
                       } ${isSoldOut ? "opacity-90" : ""}`}
                   >
                     {/* 1. Badge Tiket */}
                     {cat.badge && (
                       <span
                         className={`absolute -top-3.5 right-6 px-4 py-1 rounded-full text-[11px] font-black uppercase text-white shadow-md tracking-wider ${cat.badge === "orange"
-                            ? "bg-hce-orange"
-                            : cat.badge === "teal"
-                              ? "bg-hce-teal"
-                              : "bg-hce-navy"
+                          ? "bg-hce-orange"
+                          : cat.badge === "teal"
+                            ? "bg-hce-teal"
+                            : "bg-hce-navy"
                           }`}
                       >
                         {cat.badge}
@@ -1401,10 +1401,10 @@ export default function SinglePageSeminar() {
                         disabled={isSoldOut}
                         onClick={() => handleSelectCategoryFromPricing(cat)}
                         className={`w-full py-4 rounded-2xl text-center text-sm font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center space-x-2 ${isSoldOut
-                            ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
-                            : cat.isPopular
-                              ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105 cursor-pointer"
-                              : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105 cursor-pointer"
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none"
+                          : cat.isPopular
+                            ? "bg-hce-orange hover:bg-hce-orange/90 text-white shadow-hce-orange/25 hover:scale-105 cursor-pointer"
+                            : "bg-hce-teal hover:bg-hce-teal/90 text-white shadow-hce-teal/20 hover:scale-105 cursor-pointer"
                           }`}
                         style={{ fontFamily: "var(--font-bebas-neue)" }}
                       >
@@ -2058,7 +2058,7 @@ export default function SinglePageSeminar() {
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <a
-                              href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?mode=gi_t"
+                              href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?s=cl&p=a&ilr=4&iam=0"
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
@@ -2073,14 +2073,6 @@ export default function SinglePageSeminar() {
                             >
                               <Printer className="w-3.5 h-3.5" />
                               <span>Cetak PDF</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyCode(activeOrder.ticketCode)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-hce-navy rounded-xl text-xs font-bold flex items-center space-x-1 cursor-pointer"
-                            >
-                              {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                              <span>{copiedCode ? "Tersalin" : "Salin"}</span>
                             </button>
                           </div>
                         </div>
@@ -2343,7 +2335,7 @@ export default function SinglePageSeminar() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <a
-                            href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?mode=gi_t"
+                            href="https://chat.whatsapp.com/CNdyfvfrIE41LUfOmtKXZA?s=cl&p=a&ilr=4&iam=0"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs transition-all hover:scale-105"
@@ -2358,14 +2350,6 @@ export default function SinglePageSeminar() {
                           >
                             <Printer className="w-3.5 h-3.5" />
                             <span>Cetak PDF</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyCode(lookupTicket.ticketCode)}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-hce-navy rounded-xl text-xs font-bold flex items-center space-x-1 cursor-pointer"
-                          >
-                            {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                            <span>{copiedCode ? "Tersalin" : "Salin"}</span>
                           </button>
                         </div>
                       </div>

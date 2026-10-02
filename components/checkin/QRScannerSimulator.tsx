@@ -468,8 +468,8 @@ export const QRScannerSimulator: React.FC = () => {
           {/* ========================================================== */}
           {scannerState === 'success' && (
             <div className="w-full h-full bg-emerald-950/95 p-6 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-200 border-2 border-emerald-500">
-              <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">STATUS: PEMBAYARAN BERHASIL</span>
-              <h4 className="text-xl font-black text-white mt-0.5">&ldquo;QR berhasil di-scan.&rdquo;</h4>
+              {/* <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">STATUS: PEMBAYARAN BERHASIL</span>
+              <h4 className="text-xl font-black text-white mt-0.5">&ldquo;QR berhasil di-scan.&rdquo;</h4> */}
 
               {scannedResult?.participant && (
                 <div className="bg-emerald-900/80 p-3 rounded-xl border border-emerald-700/60 max-w-sm w-full text-left text-xs space-y-1 mt-2.5 shadow-md">
@@ -485,12 +485,12 @@ export const QRScannerSimulator: React.FC = () => {
                   <p className="text-emerald-200">
                     Tiket: <span className="font-bold">{scannedResult.participant.ticketName}</span>
                   </p>
-                  <p className="text-emerald-300 font-mono text-[11px]">
+                  {/* <p className="text-emerald-300 font-mono text-[11px]">
                     Order ID: {scannedResult.participant.orderId}
                   </p>
                   <p className="text-emerald-300 text-[10px] pt-1 border-t border-emerald-800">
                     Waktu Scan: {scannedResult.timestamp}
-                  </p>
+                  </p> */}
                 </div>
               )}
 
