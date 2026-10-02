@@ -12,6 +12,8 @@ import {
   CheckCircle,
   AlertCircle,
   Save,
+  Copy,
+  RefreshCw,
 } from 'lucide-react';
 
 interface EditTicketModalProps {
@@ -42,6 +44,16 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [privateLink, setPrivateLink] = useState('');
+  const [copiedPrivateLink, setCopiedPrivateLink] = useState(false);
+
+  const getFallbackPrivateUrl = (codeOrId: string) => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/?ticket=${codeOrId}`;
+    }
+    return `/?ticket=${codeOrId}`;
+  };
+
   // Sync state whenever selected ticket changes
   useEffect(() => {
     if (ticket) {
@@ -56,6 +68,7 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
       setStartDate(ticket.startDate || '');
       setEndDate(ticket.endDate || '');
       setBenefits(ticket.benefits || []);
+      setPrivateLink(ticket.privateLink || getFallbackPrivateUrl(ticket.id));
       setNewBenefitInput('');
       setErrorMessage(null);
     }
@@ -71,6 +84,17 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
 
   const handleRemoveBenefit = (index: number) => {
     setBenefits(benefits.filter((_, i) => i !== index));
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(privateLink);
+    setCopiedPrivateLink(true);
+    setTimeout(() => setCopiedPrivateLink(false), 2000);
+  };
+
+  const handleRegenerateLink = () => {
+    const newCode = 'TCK-PRV-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+    setPrivateLink(getFallbackPrivateUrl(newCode));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,6 +137,7 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
         startDate,
         endDate,
         benefits,
+        privateLink: visibility === 'PRIVATE' ? (privateLink || getFallbackPrivateUrl(ticket.id)) : undefined,
       });
       onClose();
     } catch (err: any) {
@@ -215,7 +240,12 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setVisibility('PRIVATE')}
+                onClick={() => {
+                  setVisibility('PRIVATE');
+                  if (!privateLink) {
+                    setPrivateLink(getFallbackPrivateUrl(ticket.id));
+                  }
+                }}
                 className={`py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-1 transition-all cursor-pointer ${
                   visibility === 'PRIVATE'
                     ? 'bg-purple-600 text-white border-purple-600'
@@ -227,6 +257,49 @@ export const EditTicketModal: React.FC<EditTicketModalProps> = ({
             </div>
           </div>
         </div>
+
+        {visibility === 'PRIVATE' && (
+          <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-2 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-purple-950 flex items-center gap-1">
+                <Lock className="w-3 h-3 text-purple-700" />
+                <span>Private Ticket URL</span>
+              </label>
+              <span className="text-[10px] text-purple-700 font-semibold bg-purple-100 px-2 py-0.5 rounded-full">
+                Eksklusif / Tersembunyi
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-white p-2 rounded-lg border border-purple-200 text-xs font-mono text-purple-900">
+              <input
+                type="text"
+                value={privateLink}
+                onChange={(e) => setPrivateLink(e.target.value)}
+                placeholder="https://.../?ticket=..."
+                className="flex-1 bg-transparent border-none outline-none font-mono text-xs text-purple-900 truncate"
+              />
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-sans font-bold rounded-md flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+              >
+                <Copy className="w-3 h-3" />
+                {copiedPrivateLink ? 'Tersalin!' : 'Copy'}
+              </button>
+              <button
+                type="button"
+                onClick={handleRegenerateLink}
+                title="Generate kode private baru"
+                className="p-1 text-slate-400 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-[10.5px] text-purple-800 leading-snug">
+              Bagikan link ini kepada tamu undangan. Tiket akan langsung terbuka di halaman registrasi.
+            </p>
+          </div>
+        )}
 
         {/* 3. Badge Kategori & Status */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -388,18 +388,34 @@ export default function TicketManagementPage() {
             </div>
 
             {selectedTicketForView.visibility === 'PRIVATE' && (
-              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl">
-                <p className="text-xs font-bold text-purple-900 mb-1">Private Ticket Link:</p>
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl space-y-2">
+                <p className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Private Ticket Link:</span>
+                </p>
                 <div className="flex items-center justify-between gap-2 bg-white p-2 rounded-lg border border-purple-200 text-xs font-mono text-purple-700">
-                  <span className="truncate">
-                    {selectedTicketForView.privateLink || 'https://hce-ticket.com/t/PRIVATE-LINK'}
+                  <span className="truncate flex-1 font-semibold">
+                    {selectedTicketForView.privateLink || (typeof window !== 'undefined' ? `${window.location.origin}/?ticket=${selectedTicketForView.id}` : `/?ticket=${selectedTicketForView.id}`)}
                   </span>
-                  <button
-                    onClick={() => copyToClipboard(selectedTicketForView.privateLink || '')}
-                    className="px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded text-purple-800 font-sans font-semibold text-[11px] cursor-pointer"
-                  >
-                    {copiedLink ? 'Tersalin!' : 'Copy'}
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => {
+                        const targetUrl = selectedTicketForView.privateLink || (typeof window !== 'undefined' ? `${window.location.origin}/?ticket=${selectedTicketForView.id}` : `/?ticket=${selectedTicketForView.id}`);
+                        copyToClipboard(targetUrl);
+                      }}
+                      className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 rounded-md text-purple-800 font-sans font-bold text-[11px] transition-colors cursor-pointer"
+                    >
+                      {copiedLink ? 'Tersalin!' : 'Copy'}
+                    </button>
+                    <a
+                      href={selectedTicketForView.privateLink || `/?ticket=${selectedTicketForView.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 rounded-md text-white font-sans font-bold text-[11px] transition-colors cursor-pointer"
+                    >
+                      Buka Link
+                    </a>
+                  </div>
                 </div>
               </div>
             )}

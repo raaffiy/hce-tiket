@@ -260,8 +260,23 @@ export default function SinglePageSeminar() {
       try {
         const dbTickets = await fetchTicketsFromSupabase();
         if (dbTickets && dbTickets.length > 0) {
+          // Check if user came with a private ticket link or code in URL params
+          const urlParams = new URLSearchParams(window.location.search);
+          const ticketParam = (urlParams.get('ticket') || urlParams.get('private') || urlParams.get('code') || '').trim();
+
           const mapped: TicketCategory[] = dbTickets
-            .filter((t) => t.visibility === 'PUBLIC' && t.status !== 'Archived')
+            .filter((t) => {
+              if (t.status === 'Archived') return false;
+              if (t.visibility === 'PUBLIC') return true;
+              // If private, allow if URL parameter matches ID or private_link or private code
+              if (ticketParam) {
+                const paramLower = ticketParam.toLowerCase();
+                const idMatch = t.id.toLowerCase() === paramLower;
+                const linkMatch = t.privateLink && t.privateLink.toLowerCase().includes(paramLower);
+                return idMatch || linkMatch;
+              }
+              return false;
+            })
             .map((t) => {
               const tagText =
                 t.badge === 'EARLY'
@@ -306,7 +321,28 @@ export default function SinglePageSeminar() {
 
           if (mapped.length > 0) {
             setCategories(mapped);
-            setSelectedCategory((prev) => mapped.find((m) => m.id === prev.id) || mapped[0]);
+
+            if (ticketParam) {
+              const paramLower = ticketParam.toLowerCase();
+              const matchedCategory = mapped.find(
+                (m) =>
+                  m.id.toLowerCase() === paramLower ||
+                  dbTickets.some(
+                    (dbT) =>
+                      dbT.id === m.id &&
+                      (dbT.id.toLowerCase() === paramLower || (dbT.privateLink && dbT.privateLink.toLowerCase().includes(paramLower)))
+                  )
+              );
+
+              if (matchedCategory) {
+                setSelectedCategory(matchedCategory);
+                setIsOrderModalOpen(true);
+              } else {
+                setSelectedCategory(mapped[0]);
+              }
+            } else {
+              setSelectedCategory((prev) => mapped.find((m) => m.id === prev.id) || mapped[0]);
+            }
           }
         }
       } catch (e) {

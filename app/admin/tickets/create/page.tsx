@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useHCEApp } from '@/context/HCEAppContext';
@@ -38,9 +38,22 @@ export default function CreateTicketPage() {
   ]);
   const [newBenefitInput, setNewBenefitInput] = useState('');
 
-  // Private link simulation state
-  const [privateLink, setPrivateLink] = useState('https://hce-ticket.com/t/PRIVATE-HCE99A');
+  // Private link state
+  const [privateCode, setPrivateCode] = useState('');
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setPrivateCode('TCK-PRV-' + Math.random().toString(36).substring(2, 7).toUpperCase());
+  }, []);
+
+  const getPrivateUrl = (code: string) => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/?ticket=${code}`;
+    }
+    return `/?ticket=${code}`;
+  };
+
+  const currentPrivateLink = getPrivateUrl(privateCode);
 
   // Benefit List handlers
   const handleAddBenefit = () => {
@@ -54,17 +67,16 @@ export default function CreateTicketPage() {
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(privateLink);
+    navigator.clipboard.writeText(currentPrivateLink);
     setCopied(true);
     addToast('Private ticket link tersalin ke clipboard!', 'info');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleRegenerateLink = () => {
-    const newCode = Math.random().toString(36).substr(2, 6).toUpperCase();
-    const updated = `https://hce-ticket.com/t/PRIVATE-${newCode}`;
-    setPrivateLink(updated);
-    addToast('Link private berhasil diperbarui.', 'info');
+    const newCode = 'TCK-PRV-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+    setPrivateCode(newCode);
+    addToast('Kode private berhasil diperbarui.', 'info');
   };
 
   // Submit Handler
@@ -94,7 +106,7 @@ export default function CreateTicketPage() {
       endDate,
       benefits,
       status,
-      privateLink: visibility === 'PRIVATE' ? privateLink : undefined,
+      privateLink: visibility === 'PRIVATE' ? currentPrivateLink : undefined,
     });
 
     router.push('/admin/tickets');
@@ -331,36 +343,46 @@ export default function CreateTicketPage() {
                 <div>
                   <span className="font-bold text-sm text-purple-950 block">PRIVATE</span>
                   <span className="text-xs text-slate-500">
-                    Hanya dapat diakses menggunakan link khusus.
+                    Hanya dapat diakses menggunakan link khusus (tersembunyi dari publik).
                   </span>
                 </div>
               </button>
             </div>
 
             {visibility === 'PRIVATE' && (
-              <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200 space-y-2 animate-in fade-in duration-200">
-                <p className="text-xs text-purple-900 font-semibold">
-                  Private ticket dapat dibagikan menggunakan link khusus:
-                </p>
-                <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-purple-200 text-xs font-mono text-purple-700">
-                  <span className="truncate flex-1">{privateLink}</span>
+              <div className="p-4 rounded-xl bg-purple-50/80 border border-purple-200 space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-purple-950 font-bold flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Link Akses Khusus Tiket Privat:</span>
+                  </p>
+                  <span className="text-[10px] text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md font-bold">
+                    Siap Dibagikan
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-purple-200 text-xs font-mono text-purple-800 shadow-2xs">
+                  <span className="truncate flex-1 font-semibold">{currentPrivateLink}</span>
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className="px-2.5 py-1 bg-purple-100 hover:bg-purple-200 text-purple-900 rounded font-sans font-bold flex items-center gap-1 shrink-0 text-xs"
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-sans font-bold flex items-center gap-1 shrink-0 text-xs shadow-xs transition-colors cursor-pointer"
                   >
                     <Copy className="w-3.5 h-3.5" />
-                    {copied ? 'Tersalin' : 'Copy Link'}
+                    {copied ? 'Tersalin!' : 'Salin Link'}
                   </button>
                   <button
                     type="button"
                     onClick={handleRegenerateLink}
-                    className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100"
-                    title="Regenerate link"
+                    className="p-1.5 text-slate-400 hover:text-purple-700 rounded-lg hover:bg-purple-50 transition-colors"
+                    title="Buat kode acak baru"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                 </div>
+                <p className="text-[11px] text-purple-800/80 leading-relaxed">
+                  * Siapapun yang membuka link di atas akan langsung diarahkan ke form pemesanan tiket ini secara otomatis.
+                </p>
               </div>
             )}
           </div>
