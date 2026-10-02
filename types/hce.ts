@@ -136,7 +136,15 @@ export interface Sponsor {
 
 export interface RecentActivity {
   id: string;
-  type: 'ticket_created' | 'ticket_updated' | 'participant_bought' | 'checkin_success' | 'transaction_updated' | 'staff_created' | 'sponsor_added';
+  type:
+    | 'ticket_created'
+    | 'ticket_updated'
+    | 'participant_bought'
+    | 'participant_deleted'
+    | 'checkin_success'
+    | 'transaction_updated'
+    | 'staff_created'
+    | 'sponsor_added';
   title: string;
   description: string;
   timestamp: string;
