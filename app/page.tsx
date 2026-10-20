@@ -46,6 +46,7 @@ import {
 import {
   SEMINAR_INFO,
   SPEAKER_INFO,
+  SPEAKERS_INFO,
   TICKET_CATEGORIES,
   PAYMENT_METHODS,
   FACULTIES,
@@ -802,7 +803,7 @@ export default function SinglePageSeminar() {
           <div class="body">
             <div class="event-banner">
               <div class="event-theme">&ldquo;${SEMINAR_INFO.theme}&rdquo;</div>
-              <div class="speaker-line">Keynote Speaker: <strong>${SPEAKER_INFO.name}</strong> &bull; ${SPEAKER_INFO.title}</div>
+              <div class="speaker-line">Keynote Speakers: <strong>Kang Radius Saputra</strong> &bull; <strong>Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.</strong></div>
             </div>
 
             <div class="grid-details">
@@ -959,7 +960,7 @@ export default function SinglePageSeminar() {
 
                 {/* Sub-description */}
                 <p className="text-xs sm:text-base text-hce-navy/75 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
-                  Kembangkan fondasi mental, kapasitas kepemimpinan, dan kesiapan diri sebelum melangkah membangun bisnis yang berdampak nyata bersama <strong>Sadam Permana</strong>.
+                  Kembangkan fondasi mental, kapasitas kepemimpinan, dan kesiapan diri sebelum melangkah membangun bisnis yang berdampak nyata bersama <strong>Kang Radius Saputra</strong> dan <strong>Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.</strong>
                 </p>
 
                 {/* Date & Venue Badges */}
@@ -974,7 +975,7 @@ export default function SinglePageSeminar() {
                   </div>
                   <div className="flex items-center space-x-2 px-3.5 py-2 bg-white rounded-xl border border-hce-teal/15 shadow-xs">
                     <MapPin className="w-4 h-4 text-hce-teal" />
-                    <span>Telkom University Bandung</span>
+                    <span>Gedung Serba Guna, Telkom University Bandung</span>
                   </div>
                 </div>
 
@@ -988,7 +989,7 @@ export default function SinglePageSeminar() {
                     style={{ fontFamily: "var(--font-bebas-neue)", letterSpacing: "0.05em" }}
                   >
                     <Ticket className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
-                    <span className="text-lg">Beli Tiket Sekarang</span>
+                    <span className="text-lg">Book Your Ticket Now</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </button>
 
@@ -1041,31 +1042,71 @@ export default function SinglePageSeminar() {
                   <div className="absolute inset-0 bg-hce-teal/20 rounded-3xl transform rotate-3 scale-105 -z-10" />
 
                   {/* Main Card */}
-                  <div className="bg-white rounded-3xl p-6 sm:p-7 border-2 border-slate-200 shadow-2xl space-y-5">
+                  <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-2xl space-y-4">
 
-                    {/* Speaker Photo */}
-                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-md group">
-                      <Image
-                        src="/sadam.jpg"
-                        alt={SPEAKER_INFO.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                        priority
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-hce-navy/85 via-transparent to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3 text-white">
-                        <span className="text-[10px] font-extrabold text-hce-orange uppercase tracking-wider block">
-                          Keynote Speaker Utama
-                        </span>
-                        <h3 className="text-xl font-extrabold leading-tight">{SPEAKER_INFO.name}</h3>
-                        <p className="text-xs text-slate-200">{SPEAKER_INFO.title}</p>
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-hce-orange bg-hce-cream px-3 py-1 rounded-full border border-hce-orange/20">
+                        2 Keynote Speakers
+                      </span>
+                      <span className="text-[11px] font-bold text-hce-teal flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> HIPMI Collab Expo
+                      </span>
+                    </div>
+
+                    {/* Dual Speaker Cards Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Speaker 1: Kang Radius Saputra */}
+                      <div className="group relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-900 flex flex-col justify-end aspect-[4/5]">
+                        <Image
+                          src="/narasumber-1.jpeg"
+                          alt="Kang Radius Saputra"
+                          fill
+                          sizes="(max-width: 768px) 50vw, 250px"
+                          className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                          priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-hce-navy via-hce-navy/40 to-transparent pointer-events-none" />
+                        <div className="relative p-2.5 sm:p-3 text-white z-10">
+                          <span className="text-[9px] font-extrabold text-hce-orange uppercase tracking-wider block">
+                            Keynote Speaker
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-extrabold leading-tight text-white line-clamp-1">
+                            Kang Radius Saputra
+                          </h4>
+                          <p className="text-[10px] text-slate-200 font-medium leading-tight mt-0.5 line-clamp-2">
+                            Founder &amp; CBO Duluin
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Speaker 2: Bapak Dr. Iwan Iwut Tritoasmoro */}
+                      <div className="group relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-gradient-to-b from-slate-100 to-slate-200 flex flex-col justify-end aspect-[4/5]">
+                        <Image
+                          src="/narasumber-2.png"
+                          alt="Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T."
+                          fill
+                          sizes="(max-width: 768px) 50vw, 250px"
+                          className="object-contain object-bottom group-hover:scale-105 transition-transform duration-500"
+                          priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-hce-navy via-hce-navy/40 to-transparent pointer-events-none" />
+                        <div className="relative p-2.5 sm:p-3 text-white z-10">
+                          <span className="text-[9px] font-extrabold text-hce-orange uppercase tracking-wider block">
+                            Keynote Speaker
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-extrabold leading-tight text-white line-clamp-1">
+                            Dr. Iwan Iwut T., S.T., M.T.
+                          </h4>
+                          <p className="text-[10px] text-slate-200 font-medium leading-tight mt-0.5 line-clamp-2">
+                            Direktur Bandung Techno Park
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Speaker Quote Preview */}
-                    <div className="p-4 bg-hce-cream/60 rounded-2xl border-l-3 border-hce-orange text-xs text-hce-navy/80 italic font-medium leading-relaxed">
-                      {SPEAKER_INFO.quote}
+                    {/* Preview Highlight Note */}
+                    <div className="p-3.5 bg-hce-cream/60 rounded-2xl border-l-3 border-hce-orange text-xs text-hce-navy/80 italic font-medium leading-relaxed">
+                      &ldquo;Membahas perjalanan membangun bisnis dari tahap awal hingga strategi kesiapan ekosistem inovasi dan pendanaan.&rdquo;
                     </div>
 
                   </div>
@@ -1190,83 +1231,104 @@ export default function SinglePageSeminar() {
                   className="text-xs font-black uppercase text-hce-teal tracking-wider"
                   style={{ fontFamily: "var(--font-bebas-neue)" }}
                 >
-                  Keynote Speaker Utama
+                  Keynote Speakers
                 </span>
               </div>
               <h2
                 className="text-3xl sm:text-5xl font-black text-hce-navy uppercase tracking-wide"
                 style={{ fontFamily: "var(--font-bebas-neue)" }}
               >
-                Mengenal Pembicara: {SPEAKER_INFO.name}
+                Mengenal Narasumber Kami
               </h2>
-              <p className="text-xs sm:text-sm text-hce-navy/70 font-medium max-w-xl mx-auto">
-                {SPEAKER_INFO.title} &bull; Praktisi wirausaha dan mentor kepemimpinan pemuda.
+              <p className="text-xs sm:text-sm text-hce-navy/70 font-medium max-w-2xl mx-auto">
+                Menghadirkan praktisi bisnis berpengalaman dan pimpinan ekosistem inovasi untuk membekali langkah wirausaha Anda.
               </p>
             </div>
 
-            {/* Speaker Profile Card */}
-            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl overflow-hidden p-6 sm:p-10">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Speakers Profile Cards */}
+            <div className="space-y-12">
+              {SPEAKERS_INFO.map((speaker, index) => (
+                <div
+                  key={speaker.id}
+                  className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl overflow-hidden p-6 sm:p-10"
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
 
-                <div className="lg:col-span-5 relative">
-                  <div className="w-full aspect-square rounded-3xl overflow-hidden border-4 border-[#FFFDE7] shadow-xl relative group">
-                    <Image
-                      src="/sadam.jpg"
-                      alt={SPEAKER_INFO.name}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-hce-navy/85 via-transparent to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <span className="text-[10px] font-extrabold text-hce-orange uppercase tracking-wider block">
-                        Keynote Speaker Utama
-                      </span>
-                      <h3 className="text-2xl font-extrabold">{SPEAKER_INFO.name}</h3>
-                      <p className="text-xs text-slate-200">{SPEAKER_INFO.title}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lg:col-span-7 space-y-5">
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-hce-teal uppercase tracking-widest">Biografi Singkat</span>
-                    <h3 className="text-2xl font-extrabold text-hce-navy leading-snug">
-                      Mentor Wirausaha &amp; Strategi Bisnis Berkelanjutan
-                    </h3>
-                    <p className="text-xs sm:text-sm text-hce-navy/75 leading-relaxed font-medium">
-                      {SPEAKER_INFO.bio}
-                    </p>
-                  </div>
-
-                  <div className="p-5 bg-hce-cream/60 rounded-2xl border-l-4 border-hce-orange space-y-2">
-                    <Quote className="w-5 h-5 text-hce-orange/70" />
-                    <p className="text-xs sm:text-sm text-hce-navy italic font-semibold leading-relaxed">
-                      {SPEAKER_INFO.quote}
-                    </p>
-                    <span className="text-[11px] font-bold text-hce-teal block">— {SPEAKER_INFO.name}</span>
-                  </div>
-
-                  <div className="space-y-3 pt-2">
-                    <span className="text-xs font-bold text-hce-navy uppercase tracking-wider block">
-                      Topik Pembahasan Spesial:
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {SPEAKER_INFO.topics.map((t) => (
-                        <div key={t.number} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-extrabold text-hce-orange">{t.number}.</span>
-                            <strong className="text-xs text-hce-navy font-bold">{t.title}</strong>
-                          </div>
-                          <p className="text-[11px] text-hce-navy/70 leading-relaxed pl-5 font-medium">{t.desc}</p>
+                    <div className={`lg:col-span-5 relative ${index % 2 === 1 ? "lg:order-last" : ""}`}>
+                      <div
+                        className={`w-full aspect-[4/5] sm:aspect-square max-w-md mx-auto rounded-3xl overflow-hidden border-4 border-[#FFFDE7] shadow-xl relative group ${
+                          speaker.id === "iwan-iwut"
+                            ? "bg-gradient-to-b from-slate-100 via-slate-50 to-slate-200"
+                            : "bg-slate-900"
+                        }`}
+                      >
+                        <Image
+                          src={speaker.photo}
+                          alt={speaker.name}
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+                          className={`${
+                            speaker.id === "iwan-iwut"
+                              ? "object-contain object-bottom"
+                              : "object-cover object-top"
+                          } group-hover:scale-105 transition-transform duration-500`}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-hce-navy/90 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute bottom-4 left-4 right-4 text-white">
+                          <span className="text-[10px] font-extrabold text-hce-orange uppercase tracking-wider block">
+                            Narasumber {index + 1} &bull; {speaker.role}
+                          </span>
+                          <h3 className="text-xl sm:text-2xl font-extrabold leading-tight">{speaker.name}</h3>
+                          <p className="text-xs text-slate-200 font-medium mt-0.5">{speaker.title}</p>
                         </div>
-                      ))}
+                      </div>
                     </div>
+
+                    <div className="lg:col-span-7 space-y-5">
+                      <div className="space-y-2">
+                        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-hce-cream border border-hce-teal/20">
+                          <span className="text-[11px] font-bold text-hce-teal uppercase tracking-widest">{speaker.title}</span>
+                        </div>
+                        <h3 className="text-2xl font-extrabold text-hce-navy leading-snug">
+                          {speaker.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-hce-navy/75 leading-relaxed font-medium">
+                          {speaker.bio}
+                        </p>
+                      </div>
+
+                      {speaker.quote && (
+                        <div className="p-4 sm:p-5 bg-hce-cream/60 rounded-2xl border-l-4 border-hce-orange space-y-2">
+                          <Quote className="w-5 h-5 text-hce-orange/70" />
+                          <p className="text-xs sm:text-sm text-hce-navy italic font-semibold leading-relaxed">
+                            {speaker.quote}
+                          </p>
+                          <span className="text-[11px] font-bold text-hce-teal block">— {speaker.name}</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-3 pt-2">
+                        <span className="text-xs font-bold text-hce-navy uppercase tracking-wider block">
+                          Fokus Pembahasan:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {speaker.topics.map((t) => (
+                            <div key={t.number} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs font-extrabold text-hce-orange">{t.number}.</span>
+                                <strong className="text-xs text-hce-navy font-bold">{t.title}</strong>
+                              </div>
+                              <p className="text-[11px] text-hce-navy/70 leading-relaxed pl-5 font-medium">{t.desc}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
                   </div>
-
                 </div>
-
-              </div>
+              ))}
             </div>
 
           </div>
@@ -1335,7 +1397,15 @@ export default function SinglePageSeminar() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+              <div
+                className={
+                  categories.length === 1
+                    ? "flex justify-center w-full"
+                    : categories.length === 2
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto"
+                    : "grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch"
+                }
+              >
                 {categories.map((cat) => {
                   const nowTime = new Date().getTime();
                   const isOutOfStock = (cat.remaining !== undefined && cat.remaining <= 0);
@@ -1365,7 +1435,9 @@ export default function SinglePageSeminar() {
                   return (
                     <div
                       key={cat.id}
-                      className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${cat.isPopular && !isLocked
+                      className={`rounded-3xl p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 relative border-2 ${
+                        categories.length === 1 ? "w-full max-w-md" : ""
+                      } ${cat.isPopular && !isLocked
                         ? "bg-white border-hce-orange shadow-2xl scale-105 z-10"
                         : "bg-slate-50/70 border-slate-200 shadow-lg hover:shadow-xl hover:border-hce-teal/30 hover:bg-white"
                         } ${isLocked ? "opacity-90 grayscale-[15%]" : ""}`}
@@ -1649,7 +1721,7 @@ export default function SinglePageSeminar() {
                           </span>
                         </div>
 
-                        <div className={categories.length === 1 ? "grid grid-cols-1 sm:grid-cols-2 max-w-lg gap-2.5" : "grid grid-cols-1 sm:grid-cols-3 gap-2.5"}>
+                        <div className={categories.length === 1 ? "grid grid-cols-1 max-w-sm gap-2.5" : categories.length === 2 ? "grid grid-cols-1 sm:grid-cols-2 gap-2.5" : "grid grid-cols-1 sm:grid-cols-3 gap-2.5"}>
                           {categories.map((cat) => {
                             const isSelected = selectedCategory.id === cat.id;
                             const nowTime = new Date().getTime();
@@ -2099,7 +2171,7 @@ export default function SinglePageSeminar() {
                           <div>
                             <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
                             <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
-                            <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                            <p className="text-xs text-slate-500 mt-0.5">Keynote Speakers: <strong>Kang Radius Saputra</strong> &amp; <strong>Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.</strong></p>
                           </div>
                           <div className="text-left sm:text-right">
                             <span className="text-[10px] text-slate-400 font-bold uppercase block">Order ID</span>
@@ -2376,7 +2448,7 @@ export default function SinglePageSeminar() {
                         <div>
                           <span className="text-[10px] font-bold text-hce-teal uppercase tracking-widest block">Seminar</span>
                           <h4 className="text-base sm:text-lg font-black text-hce-navy">&ldquo;{SEMINAR_INFO.theme}&rdquo;</h4>
-                          <p className="text-xs text-slate-500 mt-0.5">Keynote Speaker: <strong>{SPEAKER_INFO.name}</strong></p>
+                          <p className="text-xs text-slate-500 mt-0.5">Keynote Speakers: <strong>Kang Radius Saputra</strong> &amp; <strong>Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.</strong></p>
                         </div>
                         <div className="text-left sm:text-right">
                           <span className="text-[10px] text-slate-400 font-bold uppercase block">Order ID</span>

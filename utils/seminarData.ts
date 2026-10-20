@@ -99,36 +99,103 @@ export const SEMINAR_INFO = {
   targetAudience: "Mahasiswa, Fresh Graduate, Pemilik Startup Pemula, dan Calon Entrepreneur",
 };
 
+export interface SpeakerInfo {
+  id: string;
+  name: string;
+  title: string;
+  role: string;
+  photo: string;
+  bio: string;
+  quote?: string;
+  topics: SpeakerTopic[];
+}
+
+export const SPEAKERS_INFO: SpeakerInfo[] = [
+  {
+    id: "radius-saputra",
+    name: "Kang Radius Saputra",
+    title: "Founder & Chief Business Officer Duluin",
+    role: "Keynote Speaker",
+    photo: "/narasumber-1.jpeg",
+    bio: "Kang Radius Saputra diundang untuk membagikan perspektif praktis mengenai perjalanan membangun dan mengembangkan bisnis. Pembahasan akan berfokus pada pengalaman founder dalam mengenali masalah, menemukan peluang, membangun solusi, menentukan strategi, dan menghadapi tantangan dalam menjalankan usaha.",
+    quote:
+      "“Membangun bisnis bukan sekadar mengejar tren, melainkan memahami masalah nyata, memvalidasi kebutuhan pelanggan, dan memiliki resiliensi untuk terus bertumbuh.”",
+    topics: [
+      {
+        number: "01",
+        title: "Perjalanan Membangun Bisnis",
+        desc: "Perjalanan membangun bisnis dari tahap awal.",
+      },
+      {
+        number: "02",
+        title: "Identifikasi Masalah & Peluang",
+        desc: "Mengidentifikasi masalah dan peluang pasar.",
+      },
+      {
+        number: "03",
+        title: "Validasi Ide & Kebutuhan Pasar",
+        desc: "Memvalidasi ide dan memahami kebutuhan pelanggan.",
+      },
+      {
+        number: "04",
+        title: "Tantangan & Keputusan Strategis",
+        desc: "Menghadapi tantangan serta mengambil keputusan strategis.",
+      },
+      {
+        number: "05",
+        title: "Pengembangan & Keberlanjutan Usaha",
+        desc: "Mengembangkan bisnis dan membangun keberlanjutan usaha.",
+      },
+    ],
+  },
+  {
+    id: "iwan-iwut",
+    name: "Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.",
+    title: "Direktur Bandung Techno Park",
+    role: "Keynote Speaker",
+    photo: "/narasumber-2.png",
+    bio: "Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T. diundang untuk memberikan perspektif mengenai ekosistem pengembangan usaha, khususnya peran inkubasi, pendampingan, inovasi, dan kesiapan bisnis dalam memperoleh dukungan pendanaan.",
+    quote:
+      "“Ekosistem inovasi dan inkubasi yang kuat menjadi katalisator penting dalam mempersiapkan bisnis rintisan agar siap bertumbuh dan layak memperoleh pendanaan.”",
+    topics: [
+      {
+        number: "01",
+        title: "Peran Inkubator Bisnis",
+        desc: "Peran inkubator dalam mendukung perkembangan usaha.",
+      },
+      {
+        number: "02",
+        title: "Kesiapan Pengembangan Usaha",
+        desc: "Kriteria dan aspek yang perlu dipersiapkan agar usaha siap dikembangkan.",
+      },
+      {
+        number: "03",
+        title: "Validasi Produk & Model Bisnis",
+        desc: "Validasi produk, model bisnis, dan potensi pasar.",
+      },
+      {
+        number: "04",
+        title: "Kesiapan Pendanaan & Kemitraan",
+        desc: "Persiapan bisnis dalam mencari pendanaan atau menjalin kemitraan.",
+      },
+      {
+        number: "05",
+        title: "Ekosistem Inovasi Berkelanjutan",
+        desc: "Pemanfaatan ekosistem inovasi untuk memperkuat pertumbuhan usaha.",
+      },
+    ],
+  },
+];
+
 export const SPEAKER_INFO = {
-  name: "Sadam Permana",
-  title: "Entrepreneur, Business Strategist & Keynote Speaker",
-  role: "Keynote Speaker Utama",
-  photo: "/sadam.jpg",
-  bio: "Praktisi bisnis dan mentor kepemimpinan pemuda yang telah membantu ribuan anak muda menemukan potensi sejati, merumuskan model bisnis yang berakar pada nilai otentik, serta mengonversi ide menjadi dampak nyata bagi masyarakat.",
+  name: "Kang Radius Saputra & Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.",
+  title: "Founder & CBO Duluin & Direktur Bandung Techno Park",
+  role: "Keynote Speakers",
+  photo: "/narasumber-1.jpeg",
+  bio: "Menghadirkan dua narasumber terkemuka: Kang Radius Saputra (Founder & CBO Duluin) dan Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T. (Direktur Bandung Techno Park) untuk membagikan perspektif praktis perjalanan founder serta kesiapan ekosistem inovasi dan pendanaan.",
   quote:
-    "“Banyak bisnis gagal bukan karena kekurangan modal uang, tetapi karena pendirinya belum selesai membangun karakter, disiplin, dan integritas dirinya sendiri.”",
-  topics: [
-    {
-      number: "01",
-      title: "The Inner Foundation",
-      desc: "Memetakan potensi otentik diri, mengatasi self-doubt, serta membangun resiliensi mental sebelum memasuki dinamika dunia bisnis.",
-    },
-    {
-      number: "02",
-      title: "From Idea to Execution",
-      desc: "Menemukan validasi masalah nyata, merancang positioning produk yang kuat, dan menghindari jebakan tren tanpa arah.",
-    },
-    {
-      number: "03",
-      title: "High-Impact Leadership",
-      desc: "Menumbuhkan kredibilitas personal, komunikasi persuasif, serta cara memimpin tim perdana dengan visi yang menginspirasi.",
-    },
-    {
-      number: "04",
-      title: "Scaling Yourself & Your Business",
-      desc: "Menyelaraskan kapasitas kepemimpinan internal agar seimbang dengan pertumbuhan skala bisnis dan ekosistem kemitraan.",
-    },
-  ] as SpeakerTopic[],
+    "“Kolaborasi antara pengalaman founder dalam mengeksekusi ide dan kesiapan ekosistem inovasi adalah kunci menciptakan wirausaha yang berdampak nyata.”",
+  topics: SPEAKERS_INFO[0].topics,
 };
 
 export const TICKET_CATEGORIES: TicketCategory[] = [
@@ -182,7 +249,7 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
   {
     id: "vip",
     name: "VIP Experience",
-    description: "Pengalaman VIP eksklusif dengan kursi baris terdepan dan akses privat Meet & Greet bersama Sadam Permana.",
+    description: "Pengalaman VIP eksklusif dengan kursi baris terdepan dan akses privat Meet & Greet bersama kedua narasumber.",
     tag: "Akses Eksklusif",
     badge: "EXTEND",
     price: 85000,
@@ -197,7 +264,7 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
     perks: [
       "Semua benefit paket Regular",
       "VIP Front-Row Seat (Baris Terdepan Panggung)",
-      "Exclusive Meet & Greet + Foto bersama Sadam Permana",
+      "Exclusive Meet & Greet + Foto bersama kedua Narasumber",
       "VIP Lunch Box & Premium Merchandise Box",
       "Akses Komunitas Entrepreneur HCE VIP Network",
     ],
@@ -219,29 +286,29 @@ export const RUNDOWN_SCHEDULE: RundownItem[] = [
   },
   {
     time: "09.30 – 11.30 WIB",
-    title: "Sesi 1: Unlocking Your True Potential",
-    speaker: "Sadam Permana",
-    desc: "Membangun mindset fondasi diri, kepemimpinan mental, dan pemetaan tujuan hidup sebelum bisnis.",
+    title: "Sesi 1: Perjalanan Membangun Bisnis & Peluang Pasar",
+    speaker: "Kang Radius Saputra",
+    desc: "Membagikan perspektif praktis pengalaman founder: mengenali masalah, menemukan peluang, validasi ide, dan menghadapi tantangan usaha.",
     type: "keynote",
   },
   {
     time: "11.30 – 12.30 WIB",
     title: "Interactive Live Q&A Session",
-    speaker: "Sadam Permana & Moderator",
+    speaker: "Kang Radius Saputra & Moderator",
     desc: "Sesi tanya jawab terbuka dan konsultasi studi kasus langsung dari peserta seminar.",
     type: "qa",
   },
   {
     time: "12.30 – 13.30 WIB",
     title: "Break, Ishoma & VIP Meet & Greet",
-    desc: "Istirahat, salat, makan siang, serta sesi privat meet and greet eksklusif pemegang tiket VIP.",
+    desc: "Istirahat, salat, makan siang, serta sesi privat meet and greet eksklusif pemegang tiket VIP bersama narasumber.",
     type: "break",
   },
   {
     time: "13.30 – 15.00 WIB",
-    title: "Sesi 2: Bridging Potential into Tangible Impact",
-    speaker: "Sadam Permana",
-    desc: "Langkah konkret eksekusi bisnis, validasi pasar, dan strategi menjaga pertumbuhan berkelanjutan.",
+    title: "Sesi 2: Ekosistem Inovasi, Inkubasi & Kesiapan Pendanaan",
+    speaker: "Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.",
+    desc: "Perspektif ekosistem pengembangan usaha, peran inkubasi, kesiapan bisnis dalam mencari kemitraan dan memperoleh pendanaan.",
     type: "keynote",
   },
   {
@@ -259,8 +326,8 @@ export const SEMINAR_BENEFITS = [
     icon: "Award",
   },
   {
-    title: "Insight Langsung dari Praktisi",
-    desc: "Dapatkan framework praktis membangun kapasitas diri dan bisnis dari Sadam Permana.",
+    title: "Insight Langsung dari Praktisi & Pakar",
+    desc: "Dapatkan framework praktis membangun bisnis dan akses ekosistem inovasi dari Kang Radius Saputra dan Dr. Iwan Iwut Tritoasmoro.",
     icon: "Sparkles",
   },
   {

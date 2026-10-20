@@ -74,7 +74,7 @@ export default function Footer() {
               </div>
             </a>
             <p className="text-xs sm:text-sm text-hce-navy/70 leading-relaxed font-medium">
-              Seminar HCE 2026: <em>&ldquo;From Potential to Impact: Building Yourself Before Building a Business&rdquo;</em> bersama Sadam Permana.
+              Seminar HCE 2026: <em>&ldquo;From Potential to Impact: Building Yourself Before Building a Business&rdquo;</em> bersama Kang Radius Saputra dan Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.
             </p>
 
             {/* Social Icons */}
@@ -140,7 +140,7 @@ export default function Footer() {
                   className="text-xs sm:text-sm text-hce-navy/70 hover:text-hce-teal transition-colors flex items-center font-medium cursor-pointer"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-hce-teal/40 mr-2" />
-                  Profil Sadam Permana
+                  Profil Narasumber
                 </a>
               </li>
               <li>
@@ -234,7 +234,7 @@ export default function Footer() {
             &copy; 2026 Hipmi Collab Expo 2026 - Nabil & Rafi
           </p>
           <p className="text-xs text-hce-navy/40 font-medium">
-            Seminar HCE: From Potential to Impact &bull; Keynote Speaker: Sadam Permana
+            Seminar HCE: From Potential to Impact &bull; Keynote Speakers: Kang Radius Saputra &amp; Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.
           </p>
         </div>
       </div>

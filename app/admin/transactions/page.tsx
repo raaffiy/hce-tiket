@@ -331,7 +331,7 @@ export default function TransactionsPage() {
           <div class="body">
             <div class="event-banner">
               <div class="event-theme">&ldquo;${SEMINAR_INFO.theme}&rdquo;</div>
-              <div class="speaker-line">Keynote Speaker: <strong>${SPEAKER_INFO.name}</strong> &bull; ${SPEAKER_INFO.title}</div>
+              <div class="speaker-line">Keynote Speakers: <strong>Kang Radius Saputra</strong> &bull; <strong>Bapak Dr. Iwan Iwut Tritoasmoro, S.T., M.T.</strong></div>
             </div>
 
             <div class="grid-details">
