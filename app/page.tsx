@@ -954,7 +954,7 @@ export default function SinglePageSeminar() {
                     className="text-lg sm:text-2xl font-extrabold text-hce-teal tracking-wide leading-snug"
                     style={{ fontFamily: "var(--font-fredoka)" }}
                   >
-                    &ldquo;Building Yourself Before Building a Business&rdquo;
+                    &ldquo;Business Growth: From Strategy to Success&rdquo;
                   </p>
                 </div>
 
@@ -1155,7 +1155,7 @@ export default function SinglePageSeminar() {
                   Transformasi Potensi Otentik Menjadi Dampak Sosial &amp; Ekonomi
                 </h3>
                 <p className="text-xs sm:text-sm text-hce-navy/75 leading-relaxed font-medium">
-                  “Building Yourself Before Building a Business” dilatarbelakangi oleh pentingnya kesiapan diri sebelum membangun sebuah bisnis. Memiliki ide dan potensi saja tidak cukup, karena seorang entrepreneur juga membutuhkan mindset, keterampilan, keberanian, konsistensi, dan kemampuan beradaptasi.
+                  “Business Growth: From Strategy to Success” dilatarbelakangi oleh pentingnya kesiapan diri sebelum membangun sebuah bisnis. Memiliki ide dan potensi saja tidak cukup, karena seorang entrepreneur juga membutuhkan mindset, keterampilan, keberanian, konsistensi, dan kemampuan beradaptasi.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
